@@ -10,4 +10,4 @@ if STRCNX is None:
 engine = create_engine(STRCNX, echo=True)
 
 # Funcion de apertura de la sesion para poder obtener, guardar, eliminar y modificar datos
-SessionLocal = sessionmaker(bind=engine, autocommit=True, autoflush=True)
+SessionLocal = sessionmaker(bind=engine, autoflush=True)
