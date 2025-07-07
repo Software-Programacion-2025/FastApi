@@ -24,9 +24,12 @@ def post_user(user: UserInsert):
     return None
 
 @users.put('/{id}', response_model=UserOut, status_code=200)
-def put_user(id: str, user: UserInsert):
+def put_user(id: str, user: UserUpdate):
+    # Cuidado: Crear un nuevo DTO para la actualización
     return user
 
 @users.delete('/{id}', status_code=204)
 def delete_user(id: str):
     return None
+
+
