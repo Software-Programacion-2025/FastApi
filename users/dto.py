@@ -1,11 +1,20 @@
 from pydantic import BaseModel
+from uuid import uuid4
 
 class UserOut(BaseModel):
+    id: str = str(uuid4())
     firstName : str
     lastName : str
-    email : str
-    age : int
+    emails : str
+    ages : int
     
 class UserLogin(BaseModel):
-    email : str
+    emails : str
     password : str
+    
+class UserInsert(BaseModel):
+    firstName : str
+    lastName : str
+    emails : str
+    password: str
+    ages : int
