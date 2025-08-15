@@ -23,7 +23,6 @@ class UserInsert(BaseModel):
 
 class UserUpdate(BaseModel):
     firstName : Optional[str] = None
-    lastName : str
-    emails : str
-    password: str
-    ages : int
+    lastName : Optional[str] = None
+    emails : Optional[str] = None
+    ages : Optional[int] = 0
