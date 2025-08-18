@@ -5,7 +5,9 @@ from config.cnx import engine
 
 # Importamos las rutas de los diferentes modelos 
 from default.routes import default
+
 from users.ruotes import users
+from tasks.routes import tasks
 
 # Creamos la variable que nos permite manejar FASTAPI
 app = FastAPI(
@@ -25,8 +27,13 @@ app.add_middleware(
 
 #Routas de la API
 app.include_router(default, prefix='', tags=['Rutas por Default'])
+
 app.include_router(users, prefix='/users', tags=['Users'])
+app.include_router(tasks, prefix='/tasks', tags=['Tasks'])
+
 
 # Cheque los cambios en la declaracion de los modelos
 Base.metadata.create_all(bind=engine)
+
+
 
