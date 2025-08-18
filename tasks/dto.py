@@ -1,8 +1,16 @@
 from pydantic import BaseModel
 from typing import Optional, List, TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from users.dto import UserOut
+# DTO simple para usuario sin tareas (evita referencia circular)
+class UserSimple(BaseModel):
+    id: str
+    firstName: str
+    lastName: str
+    emails: str
+    ages: int
+    
+    class Config:
+        from_attributes = True
 
 class TaskBase(BaseModel):
     title: str
@@ -13,7 +21,7 @@ class TaskCreate(TaskBase):
     user_id: str
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "title": "Implementar autenticación",
                 "description": "Desarrollar sistema de login con JWT",
@@ -26,7 +34,7 @@ class TaskUpdateState(BaseModel):
     state: str
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "state": "completed"
             }
@@ -36,7 +44,7 @@ class TaskAssignUser(BaseModel):
     user_id: str
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "user_id": "fb2e3fd3-12f2-4173-b9a2-ec57e4d39c36"
             }
@@ -44,11 +52,11 @@ class TaskAssignUser(BaseModel):
 
 class TaskOut(TaskBase):
     id: int
-    users: List["UserOut"] = []
-
+    users: List[UserSimple] = []
+    
     class Config:
         from_attributes = True
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "id": 1,
                 "title": "Implementar autenticación",
@@ -60,8 +68,7 @@ class TaskOut(TaskBase):
                         "firstName": "John",
                         "lastName": "Doe",
                         "emails": "john.doe@example.com",
-                        "ages": 30,
-                        "tasks": []
+                        "ages": 30
                     }
                 ]
             }
