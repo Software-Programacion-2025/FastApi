@@ -13,7 +13,7 @@ DATABASE=os.getenv('DATABASE')
 # Cadena de conexión a la base de datos
 ENVIROMENT = os.getenv('ENVIROMENT', 'prod')
 
-if ENVIROMENT == 'prod':
+if ENVIROMENT == 'dev':
     STRCNX=os.getenv('STRCNX')
 elif ENVIROMENT == 'qa':
     STRCNX=os.getenv('STRCNXQA')
