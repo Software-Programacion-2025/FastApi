@@ -74,6 +74,27 @@ class UserLogin(BaseModel):
                 "password": "mySecurePassword123"
             }
         }
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    user: UserOut
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+                "token_type": "bearer",
+                "user": {
+                    "id": "fb2e3fd3-12f2-4173-b9a2-ec57e4d39c36",
+                    "firstName": "John",
+                    "lastName": "Doe",
+                    "emails": "john.doe@example.com",
+                    "ages": 30,
+                    "tasks": []
+                }
+            }
+        }
     
 class UserInsert(BaseModel):
     firstName: str

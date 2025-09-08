@@ -1,15 +1,47 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends, Request
 from typing import List
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from .dto import TaskCreate, TaskOut, TaskUpdateState, TaskAssignUser
 from .services import get_all_tasks, create_task, update_task_state, get_task_by_id, assign_user_to_task, unassign_user_from_task
+from middlewares.auth import get_current_user
+import time
+import logging
+
+# Configurar logger para este módulo
+logger = logging.getLogger(__name__)
+
+# Dependency personalizado para logging de tareas sensibles
+async def log_sensitive_operation(request: Request, current_user: dict = Depends(get_current_user)):
+    """Middleware/dependency para operaciones sensibles de tareas"""
+    start_time = time.time()
+    user_id = current_user.get("sub", "unknown")
+    user_email = current_user.get("email", "unknown")
+    
+    # Log antes de la operación
+    logger.info(f"SENSITIVE_OP_START: User {user_id} ({user_email}) accessing {request.method} {request.url.path}")
+    
+    # Retornar información que puede ser usada en el endpoint
+    return {
+        "user_id": user_id,
+        "user_email": user_email,
+        "start_time": start_time,
+        "operation": f"{request.method} {request.url.path}"
+    }
+
+# Dependency para logging de operaciones de lectura
+async def log_read_operation(request: Request):
+    """Middleware/dependency simple para operaciones de lectura"""
+    client_ip = request.client.host if request.client else "unknown"
+    logger.info(f"READ_OP: {request.method} {request.url.path} - IP: {client_ip}")
+    return {"operation_type": "read", "timestamp": time.time()}
 
 tasks = APIRouter()
 
 @tasks.get('', response_model=List[TaskOut], status_code=status.HTTP_200_OK)
-def get_tasks():
-    """Obtener todas las tareas"""
+def get_tasks(log_info: dict = Depends(log_read_operation)):
+    """Obtener todas las tareas - CON middleware de logging"""
     try:
+        logger.info(f"Executing get_tasks - Operation: {log_info['operation_type']}")
         return get_all_tasks()
     except SQLAlchemyError as e:
         raise HTTPException(
@@ -24,7 +56,7 @@ def get_tasks():
 
 @tasks.get('/{task_id}', response_model=TaskOut, status_code=status.HTTP_200_OK)
 def get_task(task_id: int):
-    """Obtener una tarea por ID"""
+    """Obtener una tarea por ID - SIN middleware adicional"""
     try:
         if task_id <= 0:
             raise HTTPException(
@@ -53,28 +85,11 @@ def get_task(task_id: int):
         )
 
 @tasks.post('', response_model=TaskOut, status_code=status.HTTP_201_CREATED)
-def post_task(task: TaskCreate):
-    """Crear una nueva tarea"""
+def create_task_endpoint(task: TaskCreate, log_info: dict = Depends(log_sensitive_operation)):
+    """Crear una nueva tarea - CON middleware de operación sensible"""
     try:
-        if not task.title or not task.title.strip():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El título de la tarea es requerido"
-            )
-        
+        logger.info(f"Creating task - User: {log_info['user_ip']}, Operation: {log_info['operation_type']}")
         return create_task(task)
-    except HTTPException:
-        raise
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except IntegrityError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Error de integridad de datos al crear la tarea"
-        )
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -85,6 +100,10 @@ def post_task(task: TaskCreate):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error inesperado al crear la tarea"
         )
+
+@tasks.put('/{task_id}', response_model=TaskOut, status_code=status.HTTP_200_OK)
+def update_task(task_id: int, task: TaskUpdateState):
+    """Actualizar una tarea - SIN middleware adicional"""
 
 @tasks.patch('/{task_id}/state', response_model=TaskOut, status_code=status.HTTP_200_OK)
 def update_task_status(task_id: int, state_data: TaskUpdateState):

@@ -1,10 +1,12 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends, Request
+from fastapi.security import OAuth2PasswordRequestForm
 from uuid import uuid4
 from typing import List
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 import re
 from .dto import *
-from .services import getAllUsers, getAllUsersDeleted, getOneUser, postUser, putUser, deleteUser, recoveryUser
+from .services import getAllUsers, getAllUsersDeleted, getOneUser, postUser, putUser, deleteUser, recoveryUser, authenticate_user
+from middlewares.auth import create_access_token, compare_password, get_current_user
 
 users = APIRouter()
 
@@ -300,6 +302,108 @@ def delete_user(id: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error inesperado al eliminar el usuario"
+        )
+
+@users.post('/login', response_model=Token, status_code=status.HTTP_200_OK)
+def login_user(user_credentials: UserLogin):
+    """Autenticar usuario y generar token JWT"""
+    try:
+        # Validar formato de email
+        if not user_credentials.emails or not user_credentials.emails.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email es requerido"
+            )
+        
+        if not validate_email(user_credentials.emails):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Formato de email inválido"
+            )
+        
+        if not user_credentials.password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Contraseña es requerida"
+            )
+        
+        # Autenticar usuario
+        user = authenticate_user(user_credentials.emails, user_credentials.password)
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Email o contraseña incorrectos"
+            )
+        
+        # Generar token JWT
+        token_data = {
+            "sub": user.id,
+            "email": user.emails,
+            "name": f"{user.firstName} {user.lastName}"
+        }
+        access_token = create_access_token(data=token_data)
+        
+        # Crear respuesta con token y datos del usuario
+        user_out = UserOut(
+            id=user.id,
+            firstName=user.firstName,
+            lastName=user.lastName,
+            emails=user.emails,
+            ages=user.ages,
+            tasks=[]  # Aquí podrías cargar las tareas del usuario si es necesario
+        )
+        
+        return Token(
+            access_token=access_token,
+            token_type="bearer",
+            user=user_out
+        )
+        
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except SQLAlchemyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor al autenticar usuario"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error inesperado al autenticar usuario"
+        )
+
+@users.get('/me', response_model=UserOut, status_code=status.HTTP_200_OK)
+def get_current_user_info(current_user: dict = Depends(get_current_user)):
+    """Obtener información del usuario autenticado"""
+    try:
+        user_id = current_user.get("sub")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token inválido"
+            )
+        
+        user = getOneUser(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuario no encontrado"
+            )
+        
+        return user
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error al obtener información del usuario"
         )
 
 

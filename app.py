@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from config.basemodel import Base
 from config.cnx import engine
 
+# Importamos el middleware de autenticación
+from middlewares.auth import AuthMiddleware
+
 # Importamos las rutas de los diferentes modelos 
 from default.routes import default
 
@@ -12,7 +15,7 @@ from tasks.routes import tasks
 # Creamos la variable que nos permite manejar FASTAPI
 app = FastAPI(
     title="Ejemplo Fast-API project",
-    description="Este en un proyecto de ejemplo de FastAPI",
+    description="Este en un proyecto de ejemplo de FastAPI con autenticación JWT",
     version="1.0"
 )
 
@@ -22,8 +25,11 @@ app.add_middleware(
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=['*'],
-    allow_credentials=True
+    allow_credentials=True,
 )
+
+# Agregamos el middleware de autenticación
+app.add_middleware(AuthMiddleware)
 
 #Routas de la API
 app.include_router(default, prefix='', tags=['Rutas por Default'])

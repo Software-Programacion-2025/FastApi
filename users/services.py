@@ -2,7 +2,7 @@ from .model import User
 from config.cnx import SessionLocal
 from .dto import *
 from uuid import uuid4
-from middlewares.auth import hash_password
+from middlewares.auth import hash_password, compare_password
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 import logging
@@ -276,6 +276,51 @@ def deleteUser(id: str):
             db.rollback()
         logger.error(f"Error inesperado al eliminar usuario: {str(e)}")
         raise Exception("Error interno al eliminar usuario")
+    finally:
+        if db:
+            db.close()
+
+def authenticate_user(email: str, password: str):
+    """Autenticar un usuario con email y contraseña"""
+    db = None
+    try:
+        if not email or not email.strip():
+            raise ValueError("Email es requerido")
+        
+        if not password:
+            raise ValueError("Contraseña es requerida")
+        
+        if not validate_email_format(email):
+            raise ValueError("Formato de email inválido")
+        
+        db = SessionLocal()
+        
+        # Buscar usuario por email (solo activos)
+        user = db.query(User).filter(
+            User.emails == email.strip().lower(),
+            User.delete_at == None
+        ).first()
+        
+        if not user:
+            logger.warning(f"Intento de login con email inexistente: {email}")
+            return None
+        
+        # Verificar contraseña
+        if not compare_password(password, user.password):
+            logger.warning(f"Intento de login con contraseña incorrecta para: {email}")
+            return None
+        
+        logger.info(f"Usuario autenticado exitosamente: {user.id} - {user.emails}")
+        return user
+        
+    except ValueError:
+        raise
+    except SQLAlchemyError as e:
+        logger.error(f"Error de base de datos al autenticar usuario: {str(e)}")
+        raise SQLAlchemyError("Error al acceder a la base de datos")
+    except Exception as e:
+        logger.error(f"Error inesperado al autenticar usuario: {str(e)}")
+        raise Exception("Error interno al autenticar usuario")
     finally:
         if db:
             db.close()

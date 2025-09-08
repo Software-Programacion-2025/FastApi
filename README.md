@@ -10,7 +10,8 @@ Este proyecto implementa una API RESTful completa con FastAPI, incluyendo gesti�
 
 - [📁 Estructura del Proyecto](#-estructura-del-proyecto)
 - [⚡ Servidor de Desarrollo](#-servidor-de-desarrollo)
-- [🗂️ Migraciones con Alembic](#️-migraciones-con-alembic)
+- [� Sistema de Autenticación](#-sistema-de-autenticación)
+- [�🗂️ Migraciones con Alembic](#️-migraciones-con-alembic)
 - [🌱 Seeders](#-seeders)
 - [🛡️ Sistema de Validaciones](#️-sistema-de-validaciones)
 - [📊 Monitoreo y Logging](#-monitoreo-y-logging)
@@ -55,6 +56,127 @@ FastApi/
 ---
 
 ## ⚡ Servidor de Desarrollo
+
+Para iniciar el servidor de desarrollo ejecuta:
+
+```bash
+uvicorn app:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Endpoints Disponibles
+
+- **Documentación Swagger**: `http://localhost:8000/docs`
+- **Documentación ReDoc**: `http://localhost:8000/redoc`
+- **Health Check**: `http://localhost:8000/health`
+
+### Características del Servidor
+
+- ✅ Recarga automática en modo desarrollo
+- ✅ CORS configurado para desarrollo
+- ✅ Documentación OpenAPI automática
+- ✅ Validaciones exhaustivas en todos los endpoints
+- ✅ Manejo robusto de errores HTTP
+- ✅ **Middleware de autenticación JWT integrado**
+
+---
+
+## 🔐 Sistema de Autenticación
+
+El proyecto implementa autenticación JWT (JSON Web Tokens) con middleware personalizado para proteger las rutas de la API.
+
+### Configuración de Variables de Entorno
+
+Copia el archivo `.env.example` a `.env` y configura las variables:
+
+```bash
+cp .env.example .env
+```
+
+Variables importantes para autenticación:
+```bash
+SECRET_KEY=your_super_secret_key_here_change_in_production
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
+
+### Middleware de Autenticación
+
+#### Rutas Públicas (No requieren token)
+- ✅ `/` - Página de inicio
+- ✅ `/docs` - Documentación Swagger
+- ✅ `/health` - Health check
+- ✅ `POST /users` - Registro de usuarios
+- ✅ `POST /users/login` - Login de usuarios
+
+#### Rutas Protegidas (Requieren token JWT)
+- 🔒 `GET /users` - Listar usuarios
+- 🔒 `GET /users/{id}` - Obtener usuario específico
+- 🔒 `GET /users/me` - Información del usuario autenticado
+- 🔒 `PUT /users/{id}` - Actualizar usuario
+- 🔒 `DELETE /users/{id}` - Eliminar usuario
+- 🔒 Todas las rutas de `/tasks`
+
+### Uso de la Autenticación
+
+#### 1. Registro de Usuario
+```bash
+POST /users
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "emails": "john.doe@example.com",
+  "ages": 30,
+  "password": "securePassword123"
+}
+```
+
+#### 2. Login y Obtención de Token
+```bash
+POST /users/login
+Content-Type: application/json
+
+{
+  "emails": "john.doe@example.com",
+  "password": "securePassword123"
+}
+```
+
+**Respuesta:**
+```json
+{
+  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "token_type": "bearer",
+  "user": {
+    "id": "uuid-here",
+    "firstName": "John",
+    "lastName": "Doe",
+    "emails": "john.doe@example.com",
+    "ages": 30,
+    "tasks": []
+  }
+}
+```
+
+#### 3. Usar Token en Requests Protegidos
+```bash
+GET /users/me
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+```
+
+### Características del Sistema de Autenticación
+
+- ✅ **JWT Tokens**: Tokens seguros con expiración configurable
+- ✅ **Middleware Global**: Protección automática de rutas
+- ✅ **Rutas Públicas**: Configuración flexible de endpoints públicos
+- ✅ **Validación de Tokens**: Verificación automática de tokens válidos
+- ✅ **Información de Usuario**: Acceso a datos del usuario autenticado
+- ✅ **Manejo de Errores**: Respuestas HTTP apropiadas para errores de auth
+
+---
+
+## 🗂️ Migraciones con Alembic
 
 Para iniciar el servidor de desarrollo ejecuta:
 
