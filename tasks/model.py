@@ -28,6 +28,7 @@ class Task(Base):
     id: Mapped[int] = mapped_column(INTEGER, primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=True)
+    state: Mapped[str] = mapped_column(String(20), nullable=False, default='pending')
 
     create_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
     update_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)

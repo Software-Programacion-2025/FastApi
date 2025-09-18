@@ -88,7 +88,9 @@ def get_task(task_id: int):
 def create_task_endpoint(task: TaskCreate, log_info: dict = Depends(log_sensitive_operation)):
     """Crear una nueva tarea - CON middleware de operación sensible"""
     try:
-        logger.info(f"Creating task - User: {log_info['user_ip']}, Operation: {log_info['operation_type']}")
+        logger.info(
+            f"Creating task - User: {log_info['user_id']} ({log_info['user_email']}), Operation: {log_info['operation']}"
+        )
         return create_task(task)
     except SQLAlchemyError as e:
         raise HTTPException(

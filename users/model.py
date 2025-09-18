@@ -19,8 +19,8 @@ class User(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default='')
     firstName: Mapped[str] = mapped_column(String(50), default='', nullable=False)
     lastName: Mapped[str] = mapped_column(String(50), default='', nullable=False)
-    emails: Mapped[str] = mapped_column(String(30), default='', nullable=False)
-    password: Mapped[str] = mapped_column(String(30), default='', nullable=False)
+    emails: Mapped[str] = mapped_column(String(100), default='', nullable=False, unique=True, index=True)
+    password: Mapped[str] = mapped_column(String(100), default='', nullable=False)
     ages: Mapped[int] = mapped_column(Integer, default=0)
 
     create_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)

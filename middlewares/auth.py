@@ -27,7 +27,6 @@ PUBLIC_ROUTES = [
     "/redoc",
     "/openapi.json",
     "/favicon.ico",
-    "/users",  # Para permitir registro de usuarios
 ]
 
 # Rutas que requieren métodos específicos sin autenticación
@@ -135,9 +134,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
             if method in PUBLIC_METHODS[path]:
                 return True
         
-        # Verificar rutas que empiecen con rutas públicas (como /docs/*)
-        for public_route in PUBLIC_ROUTES:
-            if path.startswith(public_route) and path != public_route:
+        # Verificar rutas que empiecen con rutas públicas solo para prefijos bien conocidos (/docs, /redoc)
+        # Evita que rutas como /users/* queden públicas por accidente
+        prefix_whitelist = ["/docs", "/redoc"]
+        for public_prefix in prefix_whitelist:
+            if path.startswith(public_prefix):
                 return True
         
         return False
