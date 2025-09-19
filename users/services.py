@@ -5,6 +5,7 @@ from uuid import uuid4
 from middlewares.auth import hash_password, compare_password
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy.orm import joinedload
 import logging
 import re
 
@@ -22,7 +23,8 @@ def getAllUsers():
     db = None
     try:
         db = SessionLocal()
-        items = db.query(User).filter(User.delete_at == None).all()
+        # Usar joinedload para cargar las tareas junto con los usuarios (eager loading)
+        items = db.query(User).options(joinedload(User.tasks)).filter(User.delete_at == None).all()
         logger.info(f"Se obtuvieron {len(items)} usuarios activos")
         return items
     except SQLAlchemyError as e:
@@ -40,7 +42,9 @@ def getAllUsersDeleted():
     db = None
     try:
         db = SessionLocal()
-        items = db.query(User).filter(User.delete_at != None).all()
+        # Usar joinedload para cargar las tareas junto con los usuarios (eager loading)
+        from sqlalchemy.orm import joinedload
+        items = db.query(User).options(joinedload(User.tasks)).filter(User.delete_at != None).all()
         logger.info(f"Se obtuvieron {len(items)} usuarios eliminados")
         return items
     except SQLAlchemyError as e:
@@ -61,7 +65,9 @@ def getOneUser(id: str):
             raise ValueError("ID de usuario requerido")
             
         db = SessionLocal()
-        item = db.query(User).filter(User.delete_at == None, User.id == id).first()
+        # Usar joinedload para cargar las tareas junto con el usuario (eager loading)
+        from sqlalchemy.orm import joinedload
+        item = db.query(User).options(joinedload(User.tasks)).filter(User.delete_at == None, User.id == id).first()
         
         if item:
             logger.info(f"Usuario {id} obtenido exitosamente")

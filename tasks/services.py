@@ -101,10 +101,12 @@ def update_task_state(task_id: int, state_data: TaskUpdateState):
         setattr(task, 'state', state_data.state.strip())
         
         db.commit()
-        db.refresh(task)
         
-        logger.info(f"Estado de tarea {task_id} actualizado de '{old_state}' a '{getattr(task, 'state', 'unknown')}'")
-        return task
+        # Recargar la tarea con eager loading para evitar problemas de sesión
+        updated_task = db.query(Task).options(joinedload(Task.users)).filter(Task.id == task_id).first()
+        
+        logger.info(f"Estado de tarea {task_id} actualizado de '{old_state}' a '{getattr(updated_task, 'state', 'unknown')}'")
+        return updated_task
         
     except ValueError:
         if db:
@@ -187,10 +189,12 @@ def assign_user_to_task(task_id: int, assign_data: TaskAssignUser):
         # Asignar el usuario a la tarea
         task.users.append(user)
         db.commit()
-        db.refresh(task)
+        
+        # Recargar la tarea con eager loading para evitar problemas de sesión
+        updated_task = db.query(Task).options(joinedload(Task.users)).filter(Task.id == task_id).first()
         
         logger.info(f"Usuario {assign_data.user_id} asignado exitosamente a tarea {task_id}")
-        return task
+        return updated_task
         
     except ValueError:
         if db:
@@ -248,10 +252,12 @@ def unassign_user_from_task(task_id: int, user_id: str):
         # Desasignar el usuario de la tarea
         task.users.remove(user)
         db.commit()
-        db.refresh(task)
+        
+        # Recargar la tarea con eager loading para evitar problemas de sesión
+        updated_task = db.query(Task).options(joinedload(Task.users)).filter(Task.id == task_id).first()
         
         logger.info(f"Usuario {user_id} desasignado exitosamente de tarea {task_id}")
-        return task
+        return updated_task
         
     except ValueError:
         if db:
