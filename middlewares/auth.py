@@ -31,8 +31,14 @@ PUBLIC_ROUTES = [
 
 # Rutas que requieren métodos específicos sin autenticación
 PUBLIC_METHODS = {
-    "/users": ["POST"],  # Permitir registro (POST) sin auth
+    "/users": ["POST"],  # Permitir registro de usuarios sin autenticación
+    "/users/login": ["POST"],  # Permitir login sin autenticación
 }
+
+# Rutas que requieren autenticación pero no verificación de permisos específicos
+AUTHENTICATED_ONLY_ROUTES = [
+    "/users/me",  # Cualquier usuario autenticado puede ver su propio perfil
+]
 
 
 def hash_password(password: str) -> str:
@@ -69,7 +75,23 @@ def verify_jwt_token(token: str) -> dict:
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
-    """Middleware de autenticación para verificar tokens JWT"""
+    """Middleware de autenticación y autorización para verificar tokens JWT y permisos"""
+    
+    def __init__(self, app):
+        super().__init__(app)
+        # Importación lazy para evitar circular imports
+        self._permission_service = None
+    
+    def get_permission_service(self):
+        """Obtener servicio de permisos con lazy loading"""
+        try:
+            from config.cnx import SessionLocal
+            from permisos.services import PermisoService
+            db = SessionLocal()
+            return PermisoService(db)
+        except Exception as e:
+            print(f"Error creating permission service: {e}")
+            return None
     
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
@@ -103,6 +125,33 @@ class AuthMiddleware(BaseHTTPMiddleware):
             
             # Agregar información del usuario al request
             request.state.user = payload
+            
+            # Verificar permisos si está habilitado
+            if self.should_check_permissions(path):
+                user_role_id = payload.get('rol_id')
+                if user_role_id:
+                    # Normalizar la ruta para la verificación de permisos
+                    normalized_path = self.normalize_path_for_permissions(path)
+                    
+                    try:
+                        service = self.get_permission_service()
+                        if service:
+                            has_permission = service.user_has_permission(
+                                user_role_id, 
+                                normalized_path, 
+                                method
+                            )
+                            
+                            if not has_permission:
+                                return JSONResponse(
+                                    status_code=403,
+                                    content={"detail": "No tiene permisos para acceder a este recurso"}
+                                )
+                        else:
+                            print("Warning: Permission service not available, allowing access")
+                    except Exception as permission_error:
+                        # En caso de error con permisos, permitir acceso pero log el error
+                        print(f"Error verificando permisos: {permission_error}")
             
         except ValueError:
             return JSONResponse(
@@ -142,6 +191,66 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 return True
         
         return False
+    
+    def should_check_permissions(self, path: str) -> bool:
+        """Determinar si se debe verificar permisos para una ruta"""
+        # No verificar permisos para rutas internas o de sistema
+        skip_permission_paths = [
+            "/health",
+            "/favicon.ico",
+            "/openapi.json",
+            "/docs",
+            "/redoc"
+        ]
+        
+        for skip_path in skip_permission_paths:
+            if path.startswith(skip_path):
+                return False
+        
+        # No verificar permisos para rutas que solo requieren autenticación
+        if path in AUTHENTICATED_ONLY_ROUTES:
+            return False
+        
+        return True
+    
+    def normalize_path_for_permissions(self, path: str) -> str:
+        """Normalizar ruta para verificación de permisos"""
+        # Convertir rutas con IDs a formato de template
+        # Ejemplo: /users/123 -> /users/{id}
+        import re
+        
+        # Patrones actualizados para el nuevo sistema
+        # IMPORTANTE: Los patrones más específicos deben ir primero
+        patterns = [
+            # Rutas UUID para users (ya que usa UUIDs) - PRIMERO para que se procesen antes que los números
+            (r'/users/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/restore', '/users/{id}/restore'),
+            (r'/users/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}', '/users/{id}'),
+            
+            # Rutas de usuarios numéricas (migrado de usuarios -> users)
+            (r'/users/\d+/restore', '/users/{id}/restore'),
+            (r'/users/\d+', '/users/{id}'),
+            
+            # Rutas de tareas (nuevo módulo)
+            (r'/tasks/\d+/state', '/tasks/{id}/state'),
+            (r'/tasks/\d+/assign', '/tasks/{id}/assign'),
+            (r'/tasks/\d+/unassign', '/tasks/{id}/unassign'),
+            (r'/tasks/\d+', '/tasks/{id}'),
+            
+            # Rutas de roles (mantenidas)
+            (r'/roles/\d+', '/roles/{id}'),
+            
+            # Rutas de permisos (mantenidas)
+            (r'/permisos/rol/\d+', '/permisos/rol/{id}'),
+            (r'/permisos/usuario/\d+/permisos', '/permisos/usuario/{id}/permisos'),
+            (r'/permisos/ruta/[^/]+/metodo/[^/]+', '/permisos/ruta/{ruta}/metodo/{metodo}'),
+            (r'/permisos/\d+', '/permisos/{id}'),
+        ]
+        
+        normalized_path = path
+        for pattern, replacement in patterns:
+            normalized_path = re.sub(pattern, replacement, normalized_path)
+        
+        return normalized_path
 
 
 ### REVISAR 

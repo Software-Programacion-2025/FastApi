@@ -1,10 +1,10 @@
-
 from config.basemodel import Base
-from sqlalchemy import String, Table, ForeignKey, Text, Column, DateTime
+from sqlalchemy import String, Text, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import List, Optional
 from sqlalchemy.dialects.sqlite import INTEGER
 from datetime import datetime
+from config.associations import user_task_association
 
 from typing import TYPE_CHECKING
 
@@ -14,14 +14,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # Solo para tipado estático, no se ejecuta en tiempo de ejecución
     from users.model import User
-
-# Asociación entre usuarios y tareas
-user_task_association = Table(
-    'user_task_association',
-    Base.metadata,
-    Column('user_id', String(36), ForeignKey('users.id'), primary_key=True),
-    Column('task_id', INTEGER, ForeignKey('tasks.id'), primary_key=True)
-)
 
 class Task(Base):
     __tablename__ = 'tasks'

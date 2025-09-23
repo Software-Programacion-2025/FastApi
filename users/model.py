@@ -1,15 +1,14 @@
-
 from __future__ import annotations
 from config.basemodel import Base
 from sqlalchemy import String, DateTime, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
-from tasks.model import user_task_association
+from config.associations import user_task_association
 
-    # Usamos TYPE_CHECKING para evitar referencias circulares en tiempo de ejecución.
-    # Esto permite usar anotaciones de tipo para relaciones sin importar el modelo opuesto directamente,
-    # ya que solo se evalúan en tiempo de chequeo de tipos (mypy, IDEs), no en tiempo de ejecución.
+# Usamos TYPE_CHECKING para evitar referencias circulares en tiempo de ejecución.
+# Esto permite usar anotaciones de tipo para relaciones sin importar el modelo opuesto directamente,
+# ya que solo se evalúan en tiempo de chequeo de tipos (mypy, IDEs), no en tiempo de ejecución.
 if TYPE_CHECKING:
     # Solo para tipado estático, no se ejecuta en tiempo de ejecución
     from tasks.model import Task

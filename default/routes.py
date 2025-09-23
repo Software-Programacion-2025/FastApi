@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
 from uuid import uuid4
@@ -11,7 +12,7 @@ def index():
     """Endpoint de inicio"""
     try:
         return {
-            "message": f"Hola FAST API {uuid4()}",
+            "message": f"Hola FAST API",
             "status": "running",
             "version": "1.0.0"
         }
@@ -30,7 +31,7 @@ def test():
             'lastName': 'Cazabat',
             'age': 55,
             'city': 'San Carlos de Bolivar',
-            'timestamp': str(uuid4())
+            'timestamp': str(datetime.now())
         }
         return resp
     except Exception as e:
@@ -45,7 +46,8 @@ def health_check():
     try:
         return {
             "status": "healthy",
-            "timestamp": str(uuid4()),
+            "timestamp": str(datetime.now()),
+            "request_id": str(uuid4()),
             "service": "FastAPI Users & Tasks API"
         }
     except Exception as e:

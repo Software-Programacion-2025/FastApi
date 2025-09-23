@@ -1,9 +1,11 @@
-from .model import Task, user_task_association
+from .model import Task
 from users.model import User
+from config.associations import user_task_association
 from config.cnx import SessionLocal
 from .dto import TaskCreate, TaskUpdateState, TaskAssignUser
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from datetime import datetime
 import logging
 
 # Configurar logging
@@ -85,28 +87,24 @@ def update_task_state(task_id: int, state_data: TaskUpdateState):
     """Actualizar el estado de una tarea"""
     db = None
     try:
-        db = SessionLocal()
-        
         # Validar que el task_id sea válido
         if task_id <= 0:
             raise ValueError("ID de tarea inválido")
-        
+            
+        db = SessionLocal()
         task = db.query(Task).filter(Task.id == task_id).first()
         
         if not task:
-            logger.warning(f"Intento de actualizar tarea inexistente: {task_id}")
+            logger.warning(f"Tarea {task_id} no encontrada para actualizar")
             raise ValueError("Tarea no encontrada")
         
-        old_state = getattr(task, 'state', 'unknown')
-        setattr(task, 'state', state_data.state.strip())
-        
+        task.state = state_data.state
+        task.update_at = datetime.now()
         db.commit()
+        db.refresh(task)
         
-        # Recargar la tarea con eager loading para evitar problemas de sesión
-        updated_task = db.query(Task).options(joinedload(Task.users)).filter(Task.id == task_id).first()
-        
-        logger.info(f"Estado de tarea {task_id} actualizado de '{old_state}' a '{getattr(updated_task, 'state', 'unknown')}'")
-        return updated_task
+        logger.info(f"Estado de tarea {task_id} actualizado a: {state_data.state}")
+        return task
         
     except ValueError:
         if db:

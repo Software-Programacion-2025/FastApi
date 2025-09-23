@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List
 
 # DTO simple para usuario sin tareas (evita referencia circular)
 class UserSimple(BaseModel):
