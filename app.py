@@ -57,14 +57,53 @@ def custom_openapi():
         routes=app.routes,
     )
     
-    # Configurar el esquema de seguridad personalizado - ESTO ES CLAVE
+    # Configurar el esquema de seguridad personalizado para JWT Bearer
     openapi_schema["components"]["securitySchemes"] = {
-        "bearerAuth": {
+        "HTTPBearer": {
             "type": "http",
             "scheme": "bearer",
-            "bearerFormat": "JWT"
+            "bearerFormat": "JWT",
+            "description": "Ingresa tu token JWT obtenido del endpoint /users/login"
         }
     }
+    
+    # Rutas que no requieren autenticación
+    public_routes = [
+        "/",
+        "/home", 
+        "/test",
+        "/health",
+        "/docs",
+        "/redoc",
+        "/openapi.json",
+        "/favicon.ico"
+    ]
+    
+    # Rutas con métodos específicos públicos
+    public_methods = {
+        "/users": ["post"],  # Registro de usuarios
+        "/users/login": ["post"]  # Login
+    }
+    
+    # Agregar seguridad a todas las rutas excepto las públicas
+    if "paths" in openapi_schema:
+        for path, methods in openapi_schema["paths"].items():
+            for method, details in methods.items():
+                # Verificar si la ruta es pública
+                is_public = False
+                
+                # Verificar rutas completamente públicas
+                if path in public_routes:
+                    is_public = True
+                
+                # Verificar métodos específicos públicos
+                if path in public_methods and method.lower() in public_methods[path]:
+                    is_public = True
+                
+                # Si no es pública, agregar seguridad
+                if not is_public:
+                    if "security" not in details:
+                        details["security"] = [{"HTTPBearer": []}]
     
     app.openapi_schema = openapi_schema
     return app.openapi_schema

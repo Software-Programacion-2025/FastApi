@@ -8,6 +8,7 @@ from .services import (
     soft_delete_user, restore_user, login_user
 )
 from middlewares.auth import get_current_user
+from middlewares.security import get_current_user_token
 import time
 import logging
 
@@ -81,7 +82,7 @@ def get_deleted_users(log_info: dict = Depends(log_sensitive_operation)):
         )
 
 @users.get('/me', response_model=UserOut, status_code=status.HTTP_200_OK)
-def get_current_user_profile(current_user: dict = Depends(get_current_user)):
+def get_current_user_profile(current_user: dict = Depends(get_current_user_token)):
     """Obtener perfil del usuario actual"""
     try:
         user_id = current_user["user_id"]

@@ -2,7 +2,7 @@ import bcrypt
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from fastapi import HTTPException, Depends, Request, Response
+from fastapi import HTTPException, Depends, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
@@ -253,22 +253,64 @@ class AuthMiddleware(BaseHTTPMiddleware):
         return normalized_path
 
 
-### REVISAR 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+### OAuth2 SCHEME PARA SWAGGER UI
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")
 
 # Dependency para verificar el token JWT en endpoints específicos
 async def verify_token(token: str = Depends(oauth2_scheme)):
+    """Verificar y decodificar el token JWT"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[os.getenv('ALGORITHM', 'HS256')])
-        # Aquí podrías realizar validaciones adicionales si lo necesitas
         return payload
     except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expirado")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expirado",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
     except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Token inválido")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
 
-# Dependency para obtener el usuario actual desde el middleware
-async def get_current_user(request: Request):
+# Dependency para obtener el usuario actual usando OAuth2
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    """Obtener el usuario actual desde el token JWT"""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[os.getenv('ALGORITHM', 'HS256')])
+        user_id = payload.get("user_id")
+        email = payload.get("sub")
+        
+        if user_id is None or email is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token inválido: datos de usuario faltantes",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        
+        return {
+            "user_id": user_id,
+            "sub": email,
+            "roles": payload.get("roles", []),
+            "permissions": payload.get("permissions", [])
+        }
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expirado",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+# Dependency para obtener el usuario actual desde el middleware (para compatibilidad)
+async def get_current_user_from_middleware(request: Request):
     """Obtener el usuario actual desde el estado del request (middleware)"""
     if hasattr(request.state, 'user'):
         return request.state.user

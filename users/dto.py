@@ -25,8 +25,8 @@ class UserCreate(UserBase):
             "example": {
                 "firstName": "John",
                 "lastName": "Doe", 
-                "emails": "john.doe@example.com",
-                "password": "mySecurePassword123",
+                "emails": "admin@sistema.com",
+                "password": "admin123",
                 "ages": 30
             }
         }
@@ -39,7 +39,7 @@ class UserUpdate(UserBase):
             "example": {
                 "firstName": "John",
                 "lastName": "Doe", 
-                "emails": "john.doe@example.com",
+                "emails": "admin@sistema.com",
                 "password": "myNewPassword456",
                 "ages": 30
             }
@@ -56,7 +56,7 @@ class UserOut(UserBase):
                 "id": "fb2e3fd3-12f2-4173-b9a2-ec57e4d39c36",
                 "firstName": "John",
                 "lastName": "Doe",
-                "emails": "john.doe@example.com",
+                "emails": "admin@sistema.com",
                 "ages": 30,
                 "tasks": [
                     {
@@ -76,8 +76,8 @@ class UserLogin(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "emails": "john.doe@example.com",
-                "password": "mySecurePassword123"
+                "emails": "admin@sistema.com",
+                "password": "admin123"
             }
         }
 
@@ -93,7 +93,7 @@ class Token(BaseModel):
                 "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                 "token_type": "bearer",
                 "user_id": "fb2e3fd3-12f2-4173-b9a2-ec57e4d39c36",
-                "user_emails": "john.doe@example.com"
+                "user_emails": "admin@sistema.com"
             }
         }
 
@@ -111,7 +111,7 @@ class UserInsert(BaseModel):
                 "id": "fb2e3fd3-12f2-4173-b9a2-ec57e4d39c36",
                 "firstName": "John",
                 "lastName": "Doe",
-                "emails": "john.doe@example.com",
+                "emails": "admin@sistema.com",
                 "password": "hashedPassword123",
                 "ages": 30
             }
