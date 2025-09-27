@@ -32,7 +32,7 @@ PUBLIC_ROUTES = [
 # Rutas que requieren métodos específicos sin autenticación
 PUBLIC_METHODS = {
     "/users": ["POST"],  # Permitir registro de usuarios sin autenticación
-    "/users/login": ["POST"],  # Permitir login sin autenticación
+    "/users/login": ["POST","OPTIONS"],  # Permitir login sin autenticación
 }
 
 # Rutas que requieren autenticación pero no verificación de permisos específicos

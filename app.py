@@ -31,9 +31,8 @@ app = FastAPI(
 # Asignamos los Middleware para los CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=['*'],
+    allow_origins=["http://localhost:3000"],  # Cambia esto según el origen de tu frontend
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_credentials=True,
 )
 # Agregamos el middleware de autenticación
