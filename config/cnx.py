@@ -8,7 +8,7 @@ if STRCNX is None:
     raise ValueError("La conexion con la base de datos no esta configurada")
 
 #Motor de la base de Datos
-engine = create_engine(STRCNX, echo=True)
+engine = create_engine(STRCNX, echo=False)  # Desactivar echo para logging silencioso
 
 # Funcion de apertura de la sesion para poder obtener, guardar, eliminar y modificar datos
 SessionLocal = sessionmaker(bind=engine, autoflush=True)

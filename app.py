@@ -4,6 +4,53 @@ from fastapi.openapi.utils import get_openapi
 from config.basemodel import Base
 from config.cnx import engine
 
+# === CONFIGURACIÓN DE LOGGING COMPLETAMENTE SILENCIOSO ===
+import logging
+
+# Remover todos los handlers existentes del root logger
+root_logger = logging.getLogger()
+for handler in root_logger.handlers[:]:
+    root_logger.removeHandler(handler)
+
+# Configurar logging básico solo para CRITICAL
+logging.basicConfig(
+    level=logging.CRITICAL,
+    format='%(levelname)s: %(message)s',
+    force=True  # Forzar reconfiguración
+)
+
+# Lista completa de loggers de SQLAlchemy para silenciar
+sqlalchemy_loggers = [
+    'sqlalchemy', 'sqlalchemy.engine', 'sqlalchemy.engine.Engine', 
+    'sqlalchemy.pool', 'sqlalchemy.pool.impl', 'sqlalchemy.dialects',
+    'sqlalchemy.orm', 'sqlalchemy.orm.strategies'
+]
+
+# Silenciar completamente SQLAlchemy
+for logger_name in sqlalchemy_loggers:
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.CRITICAL)
+    logger.propagate = False
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+
+# Silenciar otros componentes de la aplicación
+app_loggers = [
+    'uvicorn', 'uvicorn.access', 'uvicorn.error', 'fastapi',
+    'users', 'users.services', 'users.routes',
+    'tasks', 'tasks.services', 'tasks.routes',
+    'roles', 'roles.services', 'permisos'
+]
+
+for logger_name in app_loggers:
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.CRITICAL)
+    logger.propagate = False
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+
+app_logger = logging.getLogger('app')
+
 # Importar todos los modelos para asegurar que se registren en Base.metadata
 from roles.model import Rol
 from permisos.model import Permiso
@@ -109,3 +156,22 @@ def custom_openapi():
     return app.openapi_schema
 
 app.openapi = custom_openapi
+
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    
+    # Solo mostrar mensaje de inicio si es necesario
+    if os.getenv('SHOW_STARTUP', 'true').lower() == 'true':
+        print("🚀 FastAPI Server - http://localhost:8000")
+        
+    uvicorn.run(
+        "app:app", 
+        host="0.0.0.0", 
+        port=8000, 
+        reload=True,
+        log_level="critical",  # Solo errores críticos
+        access_log=False,     # Sin access logs
+        server_header=False,  # Sin headers del servidor
+        date_header=False     # Sin fecha en headers
+    )

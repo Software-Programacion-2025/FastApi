@@ -4,12 +4,13 @@ Seeder para asignar roles a usuarios existentes
 import sqlite3
 import os
 
-def assign_roles_to_users():
+def assign_roles_to_users(verbose=False):
     """Asignar roles a usuarios existentes usando SQL directo"""
     db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'mybase.db')
     
-    print("=== Iniciando asignación de roles a usuarios ===")
-    print(f"Usando base de datos: {db_path}")
+    if verbose:
+        print("=== Iniciando asignación de roles a usuarios ===")
+        print(f"Usando base de datos: {db_path}")
     
     # Mapeo de emails a roles
     user_role_mapping = {
@@ -30,7 +31,8 @@ def assign_roles_to_users():
             cursor.execute("SELECT id FROM users WHERE emails = ?", (email,))
             user_result = cursor.fetchone()
             if not user_result:
-                print(f"⚠️  Usuario {email} no encontrado, omitiendo...")
+                if verbose:
+                    print(f"⚠️  Usuario {email} no encontrado, omitiendo...")
                 continue
             user_id = user_result[0]
                 
@@ -38,7 +40,8 @@ def assign_roles_to_users():
             cursor.execute("SELECT rol_id FROM roles WHERE rol_nombre = ?", (rol_nombre,))
             rol_result = cursor.fetchone()
             if not rol_result:
-                print(f"⚠️  Rol {rol_nombre} no encontrado, omitiendo...")
+                if verbose:
+                    print(f"⚠️  Rol {rol_nombre} no encontrado, omitiendo...")
                 continue
             rol_id = rol_result[0]
                 
@@ -49,7 +52,8 @@ def assign_roles_to_users():
             """, (user_id, rol_id))
             
             if cursor.fetchone()[0] > 0:
-                print(f"- Usuario {email} ya tiene el rol {rol_nombre}, omitiendo...")
+                if verbose:
+                    print(f"- Usuario {email} ya tiene el rol {rol_nombre}, omitiendo...")
                 continue
                 
             # Asignar rol al usuario
@@ -59,41 +63,46 @@ def assign_roles_to_users():
             """, (user_id, rol_id))
             
             assignments_made += 1
-            print(f"✓ Asignando rol '{rol_nombre}' al usuario '{email}'")
+            if verbose:
+                print(f"✓ Asignando rol '{rol_nombre}' al usuario '{email}'")
         
         conn.commit()
         
-        if assignments_made > 0:
-            print(f"✅ Se realizaron {assignments_made} asignaciones de roles exitosamente")
-        else:
-            print("ℹ️ Todas las asignaciones ya existían")
+        if verbose:
+            if assignments_made > 0:
+                print(f"✅ Se realizaron {assignments_made} asignaciones de roles exitosamente")
+            else:
+                print("ℹ️ Todas las asignaciones ya existían")
             
-        # Mostrar estado final
-        print("\n=== Estado de asignaciones ===")
-        cursor.execute("""
-            SELECT u.emails, r.rol_nombre 
-            FROM users u 
-            JOIN user_rol_association ura ON u.id = ura.user_id
-            JOIN roles r ON ura.rol_id = r.rol_id
-            ORDER BY u.emails, r.rol_nombre
-        """)
-        
-        results = cursor.fetchall()
-        if results:
-            print("Roles asignados:")
-            for email, rol in results:
-                print(f"  - {email}: {rol}")
-        else:
-            print("No hay roles asignados")
+        # Mostrar estado final solo en modo verbose
+        if verbose:
+            print("\n=== Estado de asignaciones ===")
+            cursor.execute("""
+                SELECT u.emails, r.rol_nombre 
+                FROM users u 
+                JOIN user_rol_association ura ON u.id = ura.user_id
+                JOIN roles r ON ura.rol_id = r.rol_id
+                ORDER BY u.emails, r.rol_nombre
+            """)
+            
+            results = cursor.fetchall()
+            if results:
+                print("Roles asignados:")
+                for email, rol in results:
+                    print(f"  - {email}: {rol}")
+            else:
+                print("No hay roles asignados")
             
     except Exception as e:
-        print(f"✗ Error al asignar roles: {e}")
+        if verbose:
+            print(f"✗ Error al asignar roles: {e}")
         raise
     finally:
         if 'conn' in locals():
             conn.close()
 
 if __name__ == "__main__":
+    # Ejecutar en modo verbose solo cuando se ejecuta directamente
     print("=== Seeder de Asignación de Roles ===")
-    assign_roles_to_users()
+    assign_roles_to_users(verbose=True)
     print("=== Finalizado ===")

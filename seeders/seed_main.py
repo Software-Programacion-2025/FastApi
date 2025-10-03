@@ -28,11 +28,14 @@ from seed_permisos import seed_permisos, create_permissions_table
 from seed_rol_permisos import seed_rol_permisos
 from seed_tasks import seed_tasks, create_tasks_table
 
-# Configurar logging
+# Configurar logging silencioso para seeders
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.ERROR,  # Solo errores críticos
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
+# Silenciar completamente SQLAlchemy en seeders
+logging.getLogger('sqlalchemy').setLevel(logging.CRITICAL)
+logging.getLogger('sqlalchemy.engine').setLevel(logging.CRITICAL)
 logger = logging.getLogger(__name__)
 
 def create_all_tables():

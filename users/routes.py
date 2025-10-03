@@ -23,7 +23,6 @@ async def log_sensitive_operation(request: Request, current_user: dict = Depends
     
     # Log de la operación
     operation = f"{request.method} {request.url.path}"
-    logger.info(f"Operación sensible iniciada: {operation} por usuario {current_user['user_id']} ({current_user['sub']})")
     
     return {
         "user_id": current_user["user_id"],
@@ -37,7 +36,6 @@ async def log_read_operation(request: Request):
     """Middleware/dependency simple para operaciones de lectura"""
     start_time = time.time()
     operation = f"{request.method} {request.url.path}"
-    logger.info(f"Operación de lectura: {operation}")
     
     return {
         "operation": operation,
@@ -50,7 +48,6 @@ users = APIRouter()
 def get_users(log_info: dict = Depends(log_read_operation)):
     """Obtener todos los usuarios activos - CON middleware de lectura"""
     try:
-        logger.info(f"Obteniendo usuarios - Operación: {log_info['operation']}")
         return get_all_users()
     except SQLAlchemyError as e:
         raise HTTPException(
@@ -67,7 +64,6 @@ def get_users(log_info: dict = Depends(log_read_operation)):
 def get_users_simple_list(current_user: dict = Depends(get_current_user_token)):
     """Obtener lista simplificada de usuarios para selectors - Requiere autenticación"""
     try:
-        logger.info(f"Obteniendo usuarios simples - Usuario: {current_user['user_id']} ({current_user['sub']})")
         return get_users_simple()
     except SQLAlchemyError as e:
         raise HTTPException(
@@ -84,9 +80,6 @@ def get_users_simple_list(current_user: dict = Depends(get_current_user_token)):
 def get_deleted_users(log_info: dict = Depends(log_sensitive_operation)):
     """Obtener usuarios eliminados - CON middleware de operación sensible"""
     try:
-        logger.info(
-            f"Obteniendo usuarios eliminados - User: {log_info['user_id']} ({log_info['user_email']}), Operation: {log_info['operation']}"
-        )
         return get_all_users_deleted()
     except SQLAlchemyError as e:
         raise HTTPException(
@@ -141,7 +134,6 @@ def get_user(user_id: str, log_info: dict = Depends(log_read_operation)):
                 detail="ID de usuario es requerido"
             )
         
-        logger.info(f"Obteniendo usuario {user_id} - Operación: {log_info['operation']}")
         user = get_user_by_id(user_id)
         
         if not user:
@@ -199,9 +191,6 @@ def create_user_endpoint(user: UserCreate):
 def insert_user_endpoint(user: UserInsert, log_info: dict = Depends(log_sensitive_operation)):
     """Insertar usuario con datos predefinidos - CON middleware de operación sensible (para seeders)"""
     try:
-        logger.info(
-            f"Insertando usuario - User: {log_info['user_id']} ({log_info['user_email']}), Operation: {log_info['operation']}"
-        )
         return insert_user(user)
     except IntegrityError as e:
         raise HTTPException(
@@ -228,10 +217,6 @@ def update_user_endpoint(user_id: str, user: UserUpdate, log_info: dict = Depend
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="ID de usuario es requerido"
             )
-        
-        logger.info(
-            f"Actualizando usuario {user_id} - User: {log_info['user_id']} ({log_info['user_email']}), Operation: {log_info['operation']}"
-        )
         return update_user(user_id, user)
     except HTTPException:
         raise
@@ -265,11 +250,6 @@ def delete_user_endpoint(user_id: str, log_info: dict = Depends(log_sensitive_op
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="ID de usuario es requerido"
             )
-        
-        logger.info(
-            f"Eliminando usuario {user_id} - User: {log_info['user_id']} ({log_info['user_email']}), Operation: {log_info['operation']}"
-        )
-        
         success = soft_delete_user(user_id)
         if success:
             return {"detail": f"Usuario {user_id} eliminado exitosamente"}
@@ -305,10 +285,6 @@ def restore_user_endpoint(user_id: str, log_info: dict = Depends(log_sensitive_o
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="ID de usuario es requerido"
             )
-        
-        logger.info(
-            f"Restaurando usuario {user_id} - User: {log_info['user_id']} ({log_info['user_email']}), Operation: {log_info['operation']}"
-        )
         return restore_user(user_id)
     except HTTPException:
         raise
@@ -358,10 +334,6 @@ def assign_role_to_user(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="ID de usuario es requerido"
             )
-        
-        logger.info(
-            f"Asignando rol {role_assignment.role_name} al usuario {user_id} - User: {log_info['user_id']} ({log_info['user_email']}), Operation: {log_info['operation']}"
-        )
         return assign_role(user_id, role_assignment.role_name)
     except HTTPException:
         raise
@@ -400,10 +372,6 @@ def remove_role_from_user(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Nombre de rol es requerido"
             )
-        
-        logger.info(
-            f"Removiendo rol {role_name} del usuario {user_id} - User: {log_info['user_id']} ({log_info['user_email']}), Operation: {log_info['operation']}"
-        )
         return remove_role(user_id, role_name)
     except HTTPException:
         raise

@@ -1,5 +1,82 @@
 # ✅ ToDo System - Backend API
 
+Sistema completo de gestión de tareas desarrollado con **FastAPI** y **SQLAlchemy**. Proporciona una API REST robusta para administrar usuarios, tareas y permisos con autenticación JWT y sistema de autorización granular por roles.
+
+## 🚀 Puesta en Marcha
+
+### Prerrequisitos
+
+- **Python 3.8+**
+- **pip** (gestor de paquetes Python)
+- **Git** para clonar el repositorio
+
+### Instalación Rápida
+
+```bash
+# 1. Clonar el repositorio
+git clone <url-repositorio>
+cd FastApi
+
+# 2. Crear y activar entorno virtual
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate  # Windows
+
+# 3. Instalar dependencias
+pip install -r requirements.txt
+
+# 4. Cargar datos iniciales (usuarios, roles, tareas de prueba)
+python ./seeders/seed_main.py
+
+# 5. Iniciar el servidor
+python app.py
+```
+
+### Verificación de Instalación
+
+1. **Servidor ejecutándose**: [http://localhost:8000](http://localhost:8000)
+2. **Documentación interactiva**: [http://localhost:8000/docs](http://localhost:8000/docs)
+3. **Documentación alternativa**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+
+## 🎯 Funcionalidades
+
+### 🔐 Sistema de Autenticación y Autorización
+- **Login/Registro** con JWT tokens
+- **Roles por usuario**: Administrador, Gerente, Empleado, Cajero
+- **Sistema de un rol por usuario** (simplificado y eficiente)
+- **Middleware de autenticación** automático en rutas protegidas
+- **Tokens JWT** con expiración configurable
+
+### 👥 Gestión de Usuarios
+- **CRUD completo** de usuarios con soft delete
+- **Encriptación de contraseñas** con bcrypt
+- **Perfiles de usuario** con información detallada
+- **Asignación de roles** dinámicos
+- **Restauración de usuarios** eliminados (soft delete)
+
+### 📝 Sistema de Tareas Avanzado
+- **Creación y edición** de tareas completas (título, descripción, estado)
+- **Estados de tareas**: Pendiente, En Progreso, Completada
+- **Asignación múltiple** de usuarios a tareas
+- **Tareas por usuario** - cada usuario ve solo sus tareas asignadas
+- **Gestión de asignaciones** - agregar/remover usuarios de tareas
+- **Actualización de estados** independiente de la edición completa
+
+### 🛡️ Seguridad y Middleware
+- **Middleware personalizado** de autenticación JWT
+- **Rutas públicas** configurables (login, registro, docs)
+- **Verificación automática** de permisos por rol
+- **Headers CORS** configurados para desarrollo
+- **Logging configurado** sin verbosidad excesiva de SQLAlchemy
+
+### 📊 Base de Datos y Modelos
+- **SQLAlchemy ORM** con modelos relacionados
+- **UUIDs** para identificación de usuarios
+- **Timestamps automáticos** (created_at, updated_at)
+- **Soft delete** para usuarios
+- **Relaciones many-to-many** entre usuarios y tareas
+- **Seeders modulares** para datos de pruebaem - Backend API
+
 Sistema de gestión de tareas desarrollado con **FastAPI** y **SQLAlchemy**. Proporciona una API REST completa para administrar usuarios, tareas y permisos con autenticación JWT y sistema de autorización granular.
 
 ## 🎯 Funcionalidad Principal
@@ -267,7 +344,25 @@ Para contribuir al proyecto:
 
 ## 📄 Licencia
 
-Este proyecto es desarrollado para fines educativos como parte del sistema **ToDo**.
+**MIT License**
+
+Este proyecto es desarrollado para fines educativos como parte del sistema **ToDo System**.
+
+### Términos de Uso
+
+- ✅ **Uso libre** para fines educativos y de aprendizaje
+- ✅ **Modificación y distribución** permitida con atribución
+- ✅ **Uso comercial** permitido bajo los términos de la licencia MIT
+- ⚠️ **Sin garantía** - el software se proporciona "tal como está"
+
+### Atribución
+
+Si utilizas este proyecto como base para tu propio desarrollo, se agradece la atribución al proyecto original.
+
+```
+ToDo System API - Sistema de gestión de tareas con FastAPI
+Desarrollado como proyecto educativo
+```
 
 ---
 

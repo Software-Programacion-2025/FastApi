@@ -17,7 +17,6 @@ async def log_sensitive_operation(request: Request, current_user: dict = Depends
     
     # Log de la operación
     operation = f"{request.method} {request.url.path}"
-    logger.info(f"Operación sensible iniciada: {operation} por usuario {current_user['user_id']} ({current_user['sub']})")
     
     return {
         "user_id": current_user["user_id"],
@@ -31,7 +30,6 @@ async def log_read_operation(request: Request):
     """Middleware/dependency simple para operaciones de lectura"""
     start_time = time.time()
     operation = f"{request.method} {request.url.path}"
-    logger.info(f"Operación de lectura: {operation}")
     
     return {
         "operation": operation,
@@ -44,7 +42,6 @@ tasks = APIRouter()
 def get_tasks(log_info: dict = Depends(log_read_operation)):
     """Obtener todas las tareas - CON middleware de lectura"""
     try:
-        logger.info(f"Obteniendo tareas - Operación: {log_info['operation']}")
         return get_all_tasks()
     except SQLAlchemyError as e:
         raise HTTPException(
@@ -67,7 +64,6 @@ def get_task(task_id: int, log_info: dict = Depends(log_read_operation)):
                 detail="ID de tarea debe ser un número positivo"
             )
         
-        logger.info(f"Obteniendo tarea {task_id} - Operación: {log_info['operation']}")
         task = get_task_by_id(task_id)
         
         if not task:
@@ -99,7 +95,6 @@ def get_task(task_id: int, log_info: dict = Depends(log_read_operation)):
 def get_user_tasks(user_id: str, log_info: dict = Depends(log_read_operation)):
     """Obtener todas las tareas asignadas a un usuario específico"""
     try:
-        logger.info(f"Obteniendo tareas para usuario {user_id} - Operación: {log_info['operation']}")
         
         if not user_id.strip():
             raise HTTPException(
@@ -108,7 +103,6 @@ def get_user_tasks(user_id: str, log_info: dict = Depends(log_read_operation)):
             )
         
         tasks = get_tasks_by_user(user_id)
-        logger.info(f"Se encontraron {len(tasks)} tareas para el usuario {user_id}")
         return tasks
         
     except ValueError as e:
@@ -133,9 +127,6 @@ def get_user_tasks(user_id: str, log_info: dict = Depends(log_read_operation)):
 def create_task_endpoint(task: TaskCreate, log_info: dict = Depends(log_sensitive_operation)):
     """Crear una nueva tarea - CON middleware de operación sensible"""
     try:
-        logger.info(
-            f"Creating task - User: {log_info['user_id']} ({log_info['user_email']}), Operation: {log_info['operation']}"
-        )
         return create_task(task)
     except SQLAlchemyError as e:
         raise HTTPException(
@@ -186,10 +177,6 @@ def update_task_full_endpoint(task_id: int, task: TaskUpdate, log_info: dict = D
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="ID de tarea debe ser un número positivo"
             )
-        
-        logger.info(
-            f"Updating full task {task_id} - User: {log_info['user_id']} ({log_info['user_email']}), Operation: {log_info['operation']}"
-        )
         return update_task_full(task_id, task)
     except HTTPException:
         raise
@@ -224,10 +211,6 @@ def assign_user(task_id: int, assign_data: TaskAssignUser, log_info: dict = Depe
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="ID de usuario es requerido"
             )
-        
-        logger.info(
-            f"Assigning user to task {task_id} - User: {log_info['user_id']} ({log_info['user_email']}), Operation: {log_info['operation']}"
-        )
         return assign_user_to_task(task_id, assign_data)
     except HTTPException:
         raise
@@ -267,10 +250,6 @@ def unassign_user(task_id: int, user_id: str, log_info: dict = Depends(log_sensi
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="ID de usuario es requerido"
             )
-        
-        logger.info(
-            f"Unassigning user from task {task_id} - User: {log_info['user_id']} ({log_info['user_email']}), Operation: {log_info['operation']}"
-        )
         return unassign_user_from_task(task_id, user_id)
     except HTTPException:
         raise

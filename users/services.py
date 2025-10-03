@@ -10,8 +10,7 @@ from datetime import datetime
 import logging
 import uuid
 
-# Configurar logging
-logging.basicConfig(level=logging.INFO)
+# Obtener logger para este módulo
 logger = logging.getLogger(__name__)
 
 def get_all_users():
@@ -46,7 +45,6 @@ def get_all_users():
             }
             result_users.append(user_data)
         
-        logger.info(f"Se obtuvieron {len(result_users)} usuarios")
         return result_users
     except SQLAlchemyError as e:
         logger.error(f"Error de base de datos al obtener usuarios: {str(e)}")
@@ -80,7 +78,6 @@ def get_users_simple():
             }
             simple_users.append(user_data)
         
-        logger.info(f"Se obtuvieron {len(simple_users)} usuarios (vista simple)")
         return simple_users
     except SQLAlchemyError as e:
         logger.error(f"Error de base de datos al obtener usuarios simples: {str(e)}")
@@ -124,7 +121,6 @@ def get_all_users_deleted():
             }
             result_users.append(user_data)
         
-        logger.info(f"Se obtuvieron {len(result_users)} usuarios eliminados")
         return result_users
     except SQLAlchemyError as e:
         logger.error(f"Error de base de datos al obtener usuarios eliminados: {str(e)}")
@@ -169,7 +165,6 @@ def get_user_by_id(user_id: str):
             ] if user.tasks else []
         }
             
-        logger.info(f"Usuario {user_id} encontrado")
         return user_data
     except SQLAlchemyError as e:
         logger.error(f"Error de base de datos al obtener usuario {user_id}: {str(e)}")
@@ -222,7 +217,6 @@ def create_user(user_data: UserCreate):
             'tasks': []   # Usuario nuevo no tiene tareas aún
         }
         
-        logger.info(f"Usuario creado exitosamente: ID {user.id}, Email: {user.emails}")
         return user_data_response
         
     except ValueError:
@@ -257,7 +251,6 @@ def insert_user(user_data: UserInsert):
         # Verificar si ya existe
         existing_user = db.query(User).filter(User.id == user_data.id).first()
         if existing_user:
-            logger.info(f"Usuario {user_data.id} ya existe, saltando inserción")
             return existing_user
         
         # Crear el usuario
@@ -275,7 +268,6 @@ def insert_user(user_data: UserInsert):
         db.commit()
         db.refresh(user)
         
-        logger.info(f"Usuario insertado exitosamente: ID {user.id}, Email: {user.emails}")
         return user
         
     except IntegrityError as e:
@@ -356,7 +348,6 @@ def update_user(user_id: str, user_data: UserUpdate):
             ] if user.tasks else []
         }
         
-        logger.info(f"Usuario {user_id} actualizado exitosamente")
         return user_data
         
     except ValueError:
@@ -400,7 +391,6 @@ def soft_delete_user(user_id: str):
         user.update_at = datetime.now()
         db.commit()
         
-        logger.info(f"Usuario {user_id} eliminado lógicamente")
         return True
         
     except ValueError:
@@ -461,7 +451,6 @@ def restore_user(user_id: str):
             ] if user.tasks else []
         }
         
-        logger.info(f"Usuario {user_id} restaurado exitosamente")
         return user_data
         
     except ValueError:
@@ -500,7 +489,6 @@ def authenticate_user(emails: str, password: str):
             logger.warning(f"Intento de login fallido: contraseña incorrecta para {emails}")
             return None
             
-        logger.info(f"Autenticación exitosa para usuario: {emails}")
         return user
     except SQLAlchemyError as e:
         logger.error(f"Error de base de datos al autenticar usuario {emails}: {str(e)}")
@@ -532,7 +520,6 @@ def login_user(emails: str, password: str):
     
     access_token = create_access_token(data=token_data)
     
-    logger.info(f"Login exitoso para usuario: {user.emails} con roles: {user_roles}")
     return {
         "access_token": access_token,
         "token_type": "bearer", 
@@ -565,7 +552,6 @@ def assign_role(user_id: str, role_name: str):
         
         # LÓGICA DE UN ROL POR USUARIO: Remover todos los roles existentes antes de asignar el nuevo
         if user.roles:
-            logger.info(f"Usuario {user_id} tiene roles existentes: {[r.rol_nombre for r in user.roles]}. Removiendo para asignar rol único.")
             user.roles.clear()  # Remover todos los roles existentes
         
         # Asignar el nuevo rol (será el único)
@@ -584,7 +570,6 @@ def assign_role(user_id: str, role_name: str):
             "tasks": []
         }
         
-        logger.info(f"Rol '{role_name}' asignado exitosamente al usuario: {user.id}")
         return user_dict
         
     except ValueError:
@@ -639,7 +624,6 @@ def remove_role(user_id: str, role_name: str):
             "tasks": []
         }
         
-        logger.info(f"Rol '{role_name}' removido exitosamente del usuario: {user.id}")
         return user_dict
         
     except ValueError:

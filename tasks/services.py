@@ -8,8 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime
 import logging
 
-# Configurar logging
-logging.basicConfig(level=logging.INFO)
+# Obtener logger para este módulo
 logger = logging.getLogger(__name__)
 
 def get_all_tasks():
@@ -18,7 +17,6 @@ def get_all_tasks():
     try:
         db = SessionLocal()
         tasks = db.query(Task).options(joinedload(Task.users)).all()
-        logger.info(f"Se obtuvieron {len(tasks)} tareas exitosamente")
         return tasks
     except SQLAlchemyError as e:
         logger.error(f"Error de base de datos al obtener tareas: {str(e)}")
@@ -49,7 +47,6 @@ def get_tasks_by_user(user_id: str):
             user_task_association.c.user_id == user_id
         ).all()
         
-        logger.info(f"Se obtuvieron {len(tasks)} tareas para el usuario {user_id}")
         return tasks
         
     except ValueError:
@@ -94,7 +91,6 @@ def create_task(task_data: TaskCreate):
         # Cargar explícitamente la relación users antes de cerrar la sesión
         task_with_users = db.query(Task).options(joinedload(Task.users)).filter(Task.id == task.id).first()
         
-        logger.info(f"Tarea creada exitosamente: ID {task.id}, Título: {task.title}")
         return task_with_users
         
     except ValueError:
@@ -150,7 +146,6 @@ def update_task_full(task_id: int, task_data: TaskUpdate):
         # Cargar explícitamente la relación users antes de cerrar la sesión
         task_with_users = db.query(Task).options(joinedload(Task.users)).filter(Task.id == task_id).first()
         
-        logger.info(f"Tarea {task_id} actualizada exitosamente")
         return task_with_users
         
     except ValueError:
@@ -194,7 +189,6 @@ def update_task_state(task_id: int, state_data: TaskUpdateState):
         # Cargar explícitamente la relación users antes de cerrar la sesión
         task_with_users = db.query(Task).options(joinedload(Task.users)).filter(Task.id == task_id).first()
         
-        logger.info(f"Estado de tarea {task_id} actualizado a: {state_data.state}")
         return task_with_users
         
     except ValueError:
@@ -225,11 +219,6 @@ def get_task_by_id(task_id: int):
             
         db = SessionLocal()
         task = db.query(Task).options(joinedload(Task.users)).filter(Task.id == task_id).first()
-        
-        if task:
-            logger.info(f"Tarea {task_id} obtenida exitosamente")
-        else:
-            logger.warning(f"Tarea {task_id} no encontrada")
             
         return task
         
@@ -282,7 +271,6 @@ def assign_user_to_task(task_id: int, assign_data: TaskAssignUser):
         # Recargar la tarea con eager loading para evitar problemas de sesión
         updated_task = db.query(Task).options(joinedload(Task.users)).filter(Task.id == task_id).first()
         
-        logger.info(f"Usuario {assign_data.user_id} asignado exitosamente a tarea {task_id}")
         return updated_task
         
     except ValueError:
@@ -345,7 +333,6 @@ def unassign_user_from_task(task_id: int, user_id: str):
         # Recargar la tarea con eager loading para evitar problemas de sesión
         updated_task = db.query(Task).options(joinedload(Task.users)).filter(Task.id == task_id).first()
         
-        logger.info(f"Usuario {user_id} desasignado exitosamente de tarea {task_id}")
         return updated_task
         
     except ValueError:

@@ -13,8 +13,10 @@ from users.model import User
 from middlewares.auth import hash_password
 import logging
 
-# Configurar logging
-logging.basicConfig(level=logging.INFO)
+# Configurar logging para seeders
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.getLogger('sqlalchemy').setLevel(logging.CRITICAL)
+logging.getLogger('sqlalchemy.engine').setLevel(logging.CRITICAL)
 logger = logging.getLogger(__name__)
 
 def create_users_table():

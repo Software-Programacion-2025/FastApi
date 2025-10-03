@@ -4,7 +4,7 @@ from .model import Rol
 from .dto import RolCreate, RolUpdate
 import logging
 
-logging.basicConfig(level=logging.INFO)
+# Obtener logger para este módulo
 logger = logging.getLogger(__name__)
 
 
@@ -14,7 +14,6 @@ def get_all_roles():
     try:
         db = SessionLocal()
         roles = db.query(Rol).all()
-        logger.info(f"Se obtuvieron {len(roles)} roles exitosamente")
         return roles
     except SQLAlchemyError as e:
         logger.error(f"Error de base de datos al obtener roles: {str(e)}")
@@ -38,7 +37,6 @@ def get_rol_by_id(rol_id: int):
             logger.warning(f"Rol {rol_id} no encontrado")
             raise ValueError("Rol no encontrado")
 
-        logger.info(f"Rol {rol_id} obtenido exitosamente")
         return rol
     except ValueError:
         raise
@@ -65,7 +63,6 @@ def create_rol(rol_data: RolCreate):
         db.commit()
         db.refresh(rol)
 
-        logger.info(f"Rol creado exitosamente: ID {rol.rol_id}, Nombre: {rol.rol_nombre}")
         return rol
     except IntegrityError as e:
         if db:
@@ -103,7 +100,6 @@ def update_rol(rol_id: int, update_data: RolUpdate):
         db.commit()
         db.refresh(rol)
 
-        logger.info(f"Rol {rol_id} actualizado exitosamente")
         return rol
     except ValueError:
         if db:
@@ -135,7 +131,6 @@ def delete_rol(rol_id: int):
         db.delete(rol)
         db.commit()
 
-        logger.info(f"Rol {rol_id} eliminado exitosamente")
         return True
     except ValueError:
         if db:
