@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Request
 from typing import List
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from .dto import UserCreate, UserOut, UserUpdate, UserLogin, Token, UserInsert
+from .dto import UserCreate, UserOut, UserUpdate, UserLogin, Token, UserInsert, UserSimple, RoleAssignment
 from .services import (
-    get_all_users, get_all_users_deleted, get_user_by_id, 
+    get_all_users, get_all_users_deleted, get_users_simple, get_user_by_id, 
     create_user, insert_user, update_user, 
-    soft_delete_user, restore_user, login_user
+    soft_delete_user, restore_user, login_user,
+    assign_role, remove_role
 )
 from middlewares.auth import get_current_user
 from middlewares.security import get_current_user_token
@@ -60,6 +61,23 @@ def get_users(log_info: dict = Depends(log_read_operation)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error inesperado al obtener los usuarios"
+        )
+
+@users.get('/simple', response_model=List[UserSimple], status_code=status.HTTP_200_OK)
+def get_users_simple_list(current_user: dict = Depends(get_current_user_token)):
+    """Obtener lista simplificada de usuarios para selectors - Requiere autenticación"""
+    try:
+        logger.info(f"Obteniendo usuarios simples - Usuario: {current_user['user_id']} ({current_user['sub']})")
+        return get_users_simple()
+    except SQLAlchemyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor al obtener la lista de usuarios"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error inesperado al obtener la lista de usuarios"
         )
 
 @users.get('/deleted', response_model=List[UserOut], status_code=status.HTTP_200_OK)
@@ -325,4 +343,82 @@ def login_endpoint(login_data: UserLogin):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error inesperado al iniciar sesión"
+        )
+
+@users.post('/{user_id}/roles', response_model=UserOut, status_code=status.HTTP_200_OK)
+def assign_role_to_user(
+    user_id: str,
+    role_assignment: RoleAssignment,
+    log_info: dict = Depends(log_sensitive_operation)
+):
+    """Asignar rol a un usuario - CON middleware de operación sensible"""
+    try:
+        if not user_id or not user_id.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="ID de usuario es requerido"
+            )
+        
+        logger.info(
+            f"Asignando rol {role_assignment.role_name} al usuario {user_id} - User: {log_info['user_id']} ({log_info['user_email']}), Operation: {log_info['operation']}"
+        )
+        return assign_role(user_id, role_assignment.role_name)
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except SQLAlchemyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor al asignar el rol"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error inesperado al asignar el rol"
+        )
+
+@users.delete('/{user_id}/roles/{role_name}', response_model=UserOut, status_code=status.HTTP_200_OK)
+def remove_role_from_user(
+    user_id: str,
+    role_name: str,
+    log_info: dict = Depends(log_sensitive_operation)
+):
+    """Remover rol de un usuario - CON middleware de operación sensible"""
+    try:
+        if not user_id or not user_id.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="ID de usuario es requerido"
+            )
+        
+        if not role_name or not role_name.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Nombre de rol es requerido"
+            )
+        
+        logger.info(
+            f"Removiendo rol {role_name} del usuario {user_id} - User: {log_info['user_id']} ({log_info['user_email']}), Operation: {log_info['operation']}"
+        )
+        return remove_role(user_id, role_name)
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except SQLAlchemyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor al remover el rol"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error inesperado al remover el rol"
         )

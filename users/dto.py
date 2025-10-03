@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, List
 
-# DTO simple para task sin usuarios (evita referencia circular)  
+# DTO simple para task sin usuarios (evita referencia circular)
 class TaskSimple(BaseModel):
     id: int
     title: str
@@ -10,6 +10,41 @@ class TaskSimple(BaseModel):
     
     class Config:
         from_attributes = True
+
+class UserSimple(BaseModel):
+    id: str
+    firstName: str
+    lastName: str
+    emails: str
+    roles: List[str] = []
+    
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "id": "fb2e3fd3-12f2-4173-b9a2-ec57e4d39c36",
+                "firstName": "John",
+                "lastName": "Doe",
+                "emails": "admin@sistema.com",
+                "roles": ["Administrador"]
+            }
+        }
+
+class RoleAssignment(BaseModel):
+    role_name: str
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "role_name": "Administrador"
+            }
+        }
+
+class UserBase(BaseModel):
+    firstName: str
+    lastName: str
+    emails: str
+    ages: int
 
 class UserBase(BaseModel):
     firstName: str
@@ -48,6 +83,7 @@ class UserUpdate(UserBase):
 class UserOut(UserBase):
     id: str
     tasks: List[TaskSimple] = []
+    roles: List[str] = []  # Lista de nombres de roles
     
     class Config:
         from_attributes = True
@@ -58,6 +94,7 @@ class UserOut(UserBase):
                 "lastName": "Doe",
                 "emails": "admin@sistema.com",
                 "ages": 30,
+                "roles": ["Administrador", "Gerente"],
                 "tasks": [
                     {
                         "id": 1,
@@ -86,6 +123,9 @@ class Token(BaseModel):
     token_type: str
     user_id: str
     user_emails: str
+    first_name: str
+    last_name: str
+    roles: list[str]
 
     class Config:
         json_schema_extra = {
@@ -93,7 +133,10 @@ class Token(BaseModel):
                 "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                 "token_type": "bearer",
                 "user_id": "fb2e3fd3-12f2-4173-b9a2-ec57e4d39c36",
-                "user_emails": "admin@sistema.com"
+                "user_emails": "admin@sistema.com",
+                "first_name": "Admin",
+                "last_name": "Sistema",
+                "roles": ["Administrador"]
             }
         }
 
@@ -114,5 +157,25 @@ class UserInsert(BaseModel):
                 "emails": "admin@sistema.com",
                 "password": "hashedPassword123",
                 "ages": 30
+            }
+        }
+
+class UserSimple(BaseModel):
+    """DTO simplificado para listas de usuarios"""
+    id: str
+    firstName: str
+    lastName: str
+    emails: str
+    roles: List[str] = []
+    
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "id": "fb2e3fd3-12f2-4173-b9a2-ec57e4d39c36",
+                "firstName": "John",
+                "lastName": "Doe",
+                "emails": "admin@sistema.com",
+                "roles": ["Administrador"]
             }
         }

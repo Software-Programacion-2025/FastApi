@@ -22,3 +22,12 @@ user_task_association = Table(
     Column('user_id', String(36), ForeignKey('users.id'), primary_key=True),
     Column('task_id', INTEGER, ForeignKey('tasks.id'), primary_key=True)
 )
+
+# Asociación entre usuarios y roles (many-to-many)
+user_rol_association = Table(
+    'user_rol_association',
+    Base.metadata,
+    Column('user_id', String(36), ForeignKey('users.id'), primary_key=True),
+    Column('rol_id', Integer, ForeignKey('roles.rol_id'), primary_key=True),
+    Column('assigned_at', DateTime, default=datetime.utcnow, nullable=False)
+)

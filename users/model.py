@@ -4,7 +4,7 @@ from sqlalchemy import String, DateTime, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
-from config.associations import user_task_association
+from config.associations import user_task_association, user_rol_association
 
 # Usamos TYPE_CHECKING para evitar referencias circulares en tiempo de ejecución.
 # Esto permite usar anotaciones de tipo para relaciones sin importar el modelo opuesto directamente,
@@ -12,6 +12,7 @@ from config.associations import user_task_association
 if TYPE_CHECKING:
     # Solo para tipado estático, no se ejecuta en tiempo de ejecución
     from tasks.model import Task
+    from roles.model import Rol
 
 class User(Base):
     __tablename__ = "users"
@@ -27,6 +28,7 @@ class User(Base):
     delete_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     tasks: Mapped[List["Task"]] = relationship('Task', secondary=user_task_association, back_populates='users')
+    roles: Mapped[List["Rol"]] = relationship('Rol', secondary=user_rol_association, back_populates='users')
 
     def __repr__(self) -> str:
         return f"User(id={self.id!r}, firstname={self.firstName!r}, lastname={self.lastName!r})"

@@ -1,5 +1,7 @@
 from .model import User
+from roles.model import Rol
 from config.cnx import SessionLocal
+from config.associations import user_rol_association
 from .dto import UserCreate, UserUpdate, UserInsert
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -13,14 +15,39 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def get_all_users():
-    """Obtener todos los usuarios activos con sus tareas"""
+    """Obtener todos los usuarios activos con sus tareas y roles"""
     db = None
     try:
         db = SessionLocal()
-        # Usar joinedload para cargar las tareas junto con los usuarios (eager loading)
-        users = db.query(User).options(joinedload(User.tasks)).filter(User.delete_at == None).all()
-        logger.info(f"Se obtuvieron {len(users)} usuarios")
-        return users
+        # Usar joinedload para cargar las tareas y roles junto con los usuarios (eager loading)
+        users = db.query(User).options(
+            joinedload(User.tasks),
+            joinedload(User.roles)
+        ).filter(User.delete_at == None).all()
+        
+        # Convertir a estructura de diccionario para evitar problemas con SQLAlchemy
+        result_users = []
+        for user in users:
+            user_data = {
+                'id': user.id,
+                'firstName': user.firstName,
+                'lastName': user.lastName,
+                'emails': user.emails,
+                'ages': user.ages,
+                'roles': [rol.rol_nombre for rol in user.roles] if user.roles else [],
+                'tasks': [
+                    {
+                        'id': task.id,
+                        'title': task.title,
+                        'description': task.description,
+                        'state': task.state
+                    } for task in user.tasks
+                ] if user.tasks else []
+            }
+            result_users.append(user_data)
+        
+        logger.info(f"Se obtuvieron {len(result_users)} usuarios")
+        return result_users
     except SQLAlchemyError as e:
         logger.error(f"Error de base de datos al obtener usuarios: {str(e)}")
         raise SQLAlchemyError("Error al acceder a la base de datos")
@@ -31,15 +58,74 @@ def get_all_users():
         if db:
             db.close()
 
+def get_users_simple():
+    """Obtener lista simplificada de usuarios activos solo con información básica"""
+    db = None
+    try:
+        db = SessionLocal()
+        # Solo cargar usuarios con roles, sin tareas para mejor performance
+        users = db.query(User).options(
+            joinedload(User.roles)
+        ).filter(User.delete_at == None).all()
+        
+        # Convertir a formato simple con roles como strings
+        simple_users = []
+        for user in users:
+            user_data = {
+                'id': user.id,
+                'firstName': user.firstName,
+                'lastName': user.lastName,
+                'emails': user.emails,
+                'roles': [rol.rol_nombre for rol in user.roles] if user.roles else []
+            }
+            simple_users.append(user_data)
+        
+        logger.info(f"Se obtuvieron {len(simple_users)} usuarios (vista simple)")
+        return simple_users
+    except SQLAlchemyError as e:
+        logger.error(f"Error de base de datos al obtener usuarios simples: {str(e)}")
+        raise SQLAlchemyError("Error al acceder a la base de datos")
+    except Exception as e:
+        logger.error(f"Error inesperado al obtener usuarios simples: {str(e)}")
+        raise Exception("Error interno al obtener usuarios")
+    finally:
+        if db:
+            db.close()
+
 def get_all_users_deleted():
     """Obtener todos los usuarios eliminados"""
     db = None
     try:
         db = SessionLocal()
-        # Usar joinedload para cargar las tareas junto con los usuarios (eager loading)
-        users = db.query(User).options(joinedload(User.tasks)).filter(User.delete_at != None).all()
-        logger.info(f"Se obtuvieron {len(users)} usuarios eliminados")
-        return users
+        # Usar joinedload para cargar las tareas y roles junto con los usuarios (eager loading)
+        users = db.query(User).options(
+            joinedload(User.tasks),
+            joinedload(User.roles)
+        ).filter(User.delete_at != None).all()
+        
+        # Convertir a estructura de diccionario para evitar problemas con SQLAlchemy
+        result_users = []
+        for user in users:
+            user_data = {
+                'id': user.id,
+                'firstName': user.firstName,
+                'lastName': user.lastName,
+                'emails': user.emails,
+                'ages': user.ages,
+                'roles': [rol.rol_nombre for rol in user.roles] if user.roles else [],
+                'tasks': [
+                    {
+                        'id': task.id,
+                        'title': task.title,
+                        'description': task.description,
+                        'state': task.state
+                    } for task in user.tasks
+                ] if user.tasks else []
+            }
+            result_users.append(user_data)
+        
+        logger.info(f"Se obtuvieron {len(result_users)} usuarios eliminados")
+        return result_users
     except SQLAlchemyError as e:
         logger.error(f"Error de base de datos al obtener usuarios eliminados: {str(e)}")
         raise SQLAlchemyError("Error al acceder a la base de datos")
@@ -51,33 +137,46 @@ def get_all_users_deleted():
             db.close()
 
 def get_user_by_id(user_id: str):
-    """Obtener un usuario por su ID con sus tareas"""
+    """Obtener un usuario por ID con sus tareas y roles"""
     db = None
     try:
-        if not user_id or not user_id.strip():
-            raise ValueError("ID de usuario requerido")
-            
         db = SessionLocal()
-        user = db.query(User).options(joinedload(User.tasks)).filter(
-            User.id == user_id, 
-            User.delete_at == None
-        ).first()
+        # Usar joinedload para cargar las tareas y roles junto con el usuario (eager loading)
+        user = db.query(User).options(
+            joinedload(User.tasks),
+            joinedload(User.roles)
+        ).filter(User.id == user_id, User.delete_at == None).first()
         
-        if user:
-            logger.info(f"Usuario {user_id} obtenido exitosamente")
-        else:
-            logger.warning(f"Usuario {user_id} no encontrado")
+        if not user:
+            logger.warning(f"Usuario con ID {user_id} no encontrado")
+            return None
+        
+        # Convertir a estructura de diccionario para evitar problemas con SQLAlchemy
+        user_data = {
+            'id': user.id,
+            'firstName': user.firstName,
+            'lastName': user.lastName,
+            'emails': user.emails,
+            'ages': user.ages,
+            'roles': [rol.rol_nombre for rol in user.roles] if user.roles else [],
+            'tasks': [
+                {
+                    'id': task.id,
+                    'title': task.title,
+                    'description': task.description,
+                    'state': task.state
+                } for task in user.tasks
+            ] if user.tasks else []
+        }
             
-        return user
-        
-    except ValueError:
-        raise
+        logger.info(f"Usuario {user_id} encontrado")
+        return user_data
     except SQLAlchemyError as e:
         logger.error(f"Error de base de datos al obtener usuario {user_id}: {str(e)}")
         raise SQLAlchemyError("Error al acceder a la base de datos")
     except Exception as e:
         logger.error(f"Error inesperado al obtener usuario {user_id}: {str(e)}")
-        raise Exception("Error interno al obtener el usuario")
+        raise Exception("Error interno al obtener usuario")
     finally:
         if db:
             db.close()
@@ -112,8 +211,19 @@ def create_user(user_data: UserCreate):
         db.commit()
         db.refresh(user)
         
+        # Convertir a estructura de diccionario para evitar problemas con SQLAlchemy
+        user_data_response = {
+            'id': user.id,
+            'firstName': user.firstName,
+            'lastName': user.lastName,
+            'emails': user.emails,
+            'ages': user.ages,
+            'roles': [],  # Usuario nuevo no tiene roles aún
+            'tasks': []   # Usuario nuevo no tiene tareas aún
+        }
+        
         logger.info(f"Usuario creado exitosamente: ID {user.id}, Email: {user.emails}")
-        return user
+        return user_data_response
         
     except ValueError:
         if db:
@@ -195,7 +305,10 @@ def update_user(user_id: str, user_data: UserUpdate):
             raise ValueError("ID de usuario requerido")
             
         db = SessionLocal()
-        user = db.query(User).filter(User.id == user_id, User.delete_at == None).first()
+        user = db.query(User).options(
+            joinedload(User.tasks),
+            joinedload(User.roles)
+        ).filter(User.id == user_id, User.delete_at == None).first()
         
         if not user:
             logger.warning(f"Usuario {user_id} no encontrado para actualizar")
@@ -225,8 +338,26 @@ def update_user(user_id: str, user_data: UserUpdate):
         db.commit()
         db.refresh(user)
         
+        # Convertir a estructura de diccionario para evitar problemas con SQLAlchemy
+        user_data = {
+            'id': user.id,
+            'firstName': user.firstName,
+            'lastName': user.lastName,
+            'emails': user.emails,
+            'ages': user.ages,
+            'roles': [rol.rol_nombre for rol in user.roles] if user.roles else [],
+            'tasks': [
+                {
+                    'id': task.id,
+                    'title': task.title,
+                    'description': task.description,
+                    'state': task.state
+                } for task in user.tasks
+            ] if user.tasks else []
+        }
+        
         logger.info(f"Usuario {user_id} actualizado exitosamente")
-        return user
+        return user_data
         
     except ValueError:
         if db:
@@ -298,7 +429,10 @@ def restore_user(user_id: str):
             raise ValueError("ID de usuario requerido")
             
         db = SessionLocal()
-        user = db.query(User).filter(User.id == user_id, User.delete_at != None).first()
+        user = db.query(User).options(
+            joinedload(User.tasks),
+            joinedload(User.roles)
+        ).filter(User.id == user_id, User.delete_at != None).first()
         
         if not user:
             logger.warning(f"Usuario {user_id} no encontrado en eliminados")
@@ -309,8 +443,26 @@ def restore_user(user_id: str):
         db.commit()
         db.refresh(user)
         
+        # Convertir a estructura de diccionario para evitar problemas con SQLAlchemy
+        user_data = {
+            'id': user.id,
+            'firstName': user.firstName,
+            'lastName': user.lastName,
+            'emails': user.emails,
+            'ages': user.ages,
+            'roles': [rol.rol_nombre for rol in user.roles] if user.roles else [],
+            'tasks': [
+                {
+                    'id': task.id,
+                    'title': task.title,
+                    'description': task.description,
+                    'state': task.state
+                } for task in user.tasks
+            ] if user.tasks else []
+        }
+        
         logger.info(f"Usuario {user_id} restaurado exitosamente")
-        return user
+        return user_data
         
     except ValueError:
         if db:
@@ -331,52 +483,177 @@ def restore_user(user_id: str):
             db.close()
 
 def authenticate_user(emails: str, password: str):
-    """Autenticar un usuario por email y contraseña"""
+    """Autenticar usuario por email y contraseña, incluyendo roles"""
     db = None
     try:
-        if not emails or not password:
-            return None
-            
         db = SessionLocal()
-        user = db.query(User).filter(
-            User.emails == emails.strip().lower(),
-            User.delete_at == None
-        ).first()
+        # Cargar usuario con sus roles
+        user = db.query(User).options(
+            joinedload(User.roles)
+        ).filter(User.emails == emails, User.delete_at == None).first()
         
-        if not user or not compare_password(password, user.password):
-            logger.warning(f"Intento de autenticación fallido para email: {emails}")
+        if not user:
+            logger.warning(f"Intento de login fallido: usuario {emails} no encontrado")
             return None
             
-        logger.info(f"Usuario autenticado exitosamente: {user.emails}")
+        if not compare_password(password, user.password):
+            logger.warning(f"Intento de login fallido: contraseña incorrecta para {emails}")
+            return None
+            
+        logger.info(f"Autenticación exitosa para usuario: {emails}")
         return user
-        
+    except SQLAlchemyError as e:
+        logger.error(f"Error de base de datos al autenticar usuario {emails}: {str(e)}")
+        raise SQLAlchemyError("Error al acceder a la base de datos")
     except Exception as e:
-        logger.error(f"Error inesperado al autenticar usuario: {str(e)}")
-        return None
+        logger.error(f"Error inesperado al autenticar usuario {emails}: {str(e)}")
+        raise Exception("Error interno al autenticar usuario")
     finally:
         if db:
             db.close()
 
 def login_user(emails: str, password: str):
-    """Login de usuario y generación de token"""
+    """Login de usuario y generación de token con roles"""
     user = authenticate_user(emails, password)
     if not user:
         raise ValueError("Credenciales inválidas")
     
-    # Generar token
+    # Extraer nombres de roles del usuario
+    user_roles = [rol.rol_nombre for rol in user.roles] if user.roles else []
+    
+    # Generar token (incluir roles en el token para futuras verificaciones)
     token_data = {
         "sub": user.emails,
         "user_id": user.id,
         "firstName": user.firstName,
-        "lastName": user.lastName
+        "lastName": user.lastName,
+        "roles": user_roles
     }
     
     access_token = create_access_token(data=token_data)
     
-    logger.info(f"Login exitoso para usuario: {user.emails}")
+    logger.info(f"Login exitoso para usuario: {user.emails} con roles: {user_roles}")
     return {
         "access_token": access_token,
         "token_type": "bearer", 
         "user_id": user.id,
-        "user_emails": user.emails
+        "user_emails": user.emails,
+        "first_name": user.firstName,
+        "last_name": user.lastName,
+        "roles": user_roles
     }
+
+def assign_role(user_id: str, role_name: str):
+    """Asignar un rol a un usuario"""
+    db = None
+    try:
+        db = SessionLocal()
+        
+        # Buscar el usuario
+        user = db.query(User).filter(User.id == user_id, User.delete_at.is_(None)).first()
+        if not user:
+            raise ValueError("Usuario no encontrado")
+        
+        # Buscar el rol
+        rol = db.query(Rol).filter(Rol.rol_nombre == role_name).first()
+        if not rol:
+            raise ValueError(f"Rol '{role_name}' no encontrado")
+        
+        # Verificar si el usuario ya tiene este rol específico
+        if any(r.rol_nombre == role_name for r in user.roles):
+            raise ValueError(f"El usuario ya tiene el rol '{role_name}'")
+        
+        # LÓGICA DE UN ROL POR USUARIO: Remover todos los roles existentes antes de asignar el nuevo
+        if user.roles:
+            logger.info(f"Usuario {user_id} tiene roles existentes: {[r.rol_nombre for r in user.roles]}. Removiendo para asignar rol único.")
+            user.roles.clear()  # Remover todos los roles existentes
+        
+        # Asignar el nuevo rol (será el único)
+        user.roles.append(rol)
+        db.commit()
+        db.refresh(user)
+        
+        # Convertir a diccionario
+        user_dict = {
+            "id": user.id,
+            "firstName": user.firstName,
+            "lastName": user.lastName,
+            "emails": user.emails,
+            "ages": user.ages,
+            "roles": [r.rol_nombre for r in user.roles],
+            "tasks": []
+        }
+        
+        logger.info(f"Rol '{role_name}' asignado exitosamente al usuario: {user.id}")
+        return user_dict
+        
+    except ValueError:
+        raise
+    except SQLAlchemyError as e:
+        if db:
+            db.rollback()
+        logger.error(f"Error de base de datos al asignar rol: {str(e)}")
+        raise SQLAlchemyError("Error al acceder a la base de datos")
+    except Exception as e:
+        if db:
+            db.rollback()
+        logger.error(f"Error inesperado al asignar rol: {str(e)}")
+        raise Exception("Error interno al asignar el rol")
+    finally:
+        if db:
+            db.close()
+
+def remove_role(user_id: str, role_name: str):
+    """Remover un rol de un usuario"""
+    db = None
+    try:
+        db = SessionLocal()
+        
+        # Buscar el usuario
+        user = db.query(User).filter(User.id == user_id, User.delete_at.is_(None)).first()
+        if not user:
+            raise ValueError("Usuario no encontrado")
+        
+        # Buscar el rol
+        rol = db.query(Rol).filter(Rol.rol_nombre == role_name).first()
+        if not rol:
+            raise ValueError(f"Rol '{role_name}' no encontrado")
+        
+        # Verificar si el usuario tiene el rol
+        if rol not in user.roles:
+            raise ValueError(f"El usuario no tiene el rol '{role_name}'")
+        
+        # Remover el rol
+        user.roles.remove(rol)
+        db.commit()
+        db.refresh(user)
+        
+        # Convertir a diccionario
+        user_dict = {
+            "id": user.id,
+            "firstName": user.firstName,
+            "lastName": user.lastName,
+            "emails": user.emails,
+            "ages": user.ages,
+            "roles": [r.rol_nombre for r in user.roles],
+            "tasks": []
+        }
+        
+        logger.info(f"Rol '{role_name}' removido exitosamente del usuario: {user.id}")
+        return user_dict
+        
+    except ValueError:
+        raise
+    except SQLAlchemyError as e:
+        if db:
+            db.rollback()
+        logger.error(f"Error de base de datos al remover rol: {str(e)}")
+        raise SQLAlchemyError("Error al acceder a la base de datos")
+    except Exception as e:
+        if db:
+            db.rollback()
+        logger.error(f"Error inesperado al remover rol: {str(e)}")
+        raise Exception("Error interno al remover el rol")
+    finally:
+        if db:
+            db.close()

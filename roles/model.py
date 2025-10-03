@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime, Numeric, Boolean, Floa
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 from config.basemodel import Base
-from config.associations import rol_permiso_association
+from config.associations import rol_permiso_association, user_rol_association
 
 class Rol(Base):
     __tablename__ = "roles"
@@ -14,3 +14,6 @@ class Rol(Base):
     
     # Relación many-to-many con permisos
     permisos = relationship("Permiso", secondary=rol_permiso_association, back_populates="roles")
+    
+    # Relación many-to-many con usuarios
+    users = relationship("User", secondary=user_rol_association, back_populates="roles")

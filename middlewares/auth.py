@@ -32,7 +32,8 @@ PUBLIC_ROUTES = [
 # Rutas que requieren métodos específicos sin autenticación
 PUBLIC_METHODS = {
     "/users": ["POST"],  # Permitir registro de usuarios sin autenticación
-    "/users/login": ["POST","OPTIONS"],  # Permitir login sin autenticación
+    "/users/login": ["POST"],  # Permitir login sin autenticación
+    # Nota: OPTIONS se manejan globalmente en is_public_route()
 }
 
 # Rutas que requieren autenticación pero no verificación de permisos específicos
@@ -174,6 +175,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
     
     def is_public_route(self, path: str, method: str) -> bool:
         """Verificar si una ruta es pública"""
+        # Permitir todos los requests OPTIONS para CORS preflight
+        if method == "OPTIONS":
+            return True
+            
         # Verificar rutas completamente públicas
         if path in PUBLIC_ROUTES:
             return True
