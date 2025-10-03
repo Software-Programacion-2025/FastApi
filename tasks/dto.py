@@ -40,6 +40,20 @@ class TaskUpdateState(BaseModel):
             }
         }
 
+class TaskUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    state: Optional[str] = None
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "title": "Nuevo título",
+                "description": "Nueva descripción",
+                "state": "in-progress"
+            }
+        }
+
 class TaskAssignUser(BaseModel):
     user_id: str
     

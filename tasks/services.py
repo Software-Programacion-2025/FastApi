@@ -2,7 +2,7 @@ from .model import Task
 from users.model import User
 from config.associations import user_task_association
 from config.cnx import SessionLocal
-from .dto import TaskCreate, TaskUpdateState, TaskAssignUser
+from .dto import TaskCreate, TaskUpdateState, TaskUpdate, TaskAssignUser
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from datetime import datetime
@@ -26,6 +26,40 @@ def get_all_tasks():
     except Exception as e:
         logger.error(f"Error inesperado al obtener tareas: {str(e)}")
         raise Exception("Error interno al obtener las tareas")
+    finally:
+        if db:
+            db.close()
+
+def get_tasks_by_user(user_id: str):
+    """Obtener todas las tareas asignadas a un usuario específico"""
+    db = None
+    try:
+        db = SessionLocal()
+        
+        # Verificar que el usuario existe
+        user = db.query(User).filter(User.id == user_id, User.delete_at == None).first()
+        if not user:
+            logger.warning(f"Usuario no encontrado: {user_id}")
+            raise ValueError("Usuario no encontrado")
+        
+        # Obtener tareas asignadas al usuario
+        tasks = db.query(Task).options(joinedload(Task.users)).join(
+            user_task_association
+        ).filter(
+            user_task_association.c.user_id == user_id
+        ).all()
+        
+        logger.info(f"Se obtuvieron {len(tasks)} tareas para el usuario {user_id}")
+        return tasks
+        
+    except ValueError:
+        raise
+    except SQLAlchemyError as e:
+        logger.error(f"Error de base de datos al obtener tareas del usuario {user_id}: {str(e)}")
+        raise SQLAlchemyError("Error al acceder a la base de datos")
+    except Exception as e:
+        logger.error(f"Error inesperado al obtener tareas del usuario {user_id}: {str(e)}")
+        raise Exception("Error interno al obtener las tareas del usuario")
     finally:
         if db:
             db.close()
@@ -57,8 +91,11 @@ def create_task(task_data: TaskCreate):
         db.commit()
         db.refresh(task)
         
+        # Cargar explícitamente la relación users antes de cerrar la sesión
+        task_with_users = db.query(Task).options(joinedload(Task.users)).filter(Task.id == task.id).first()
+        
         logger.info(f"Tarea creada exitosamente: ID {task.id}, Título: {task.title}")
-        return task
+        return task_with_users
         
     except ValueError:
         if db:
@@ -83,6 +120,57 @@ def create_task(task_data: TaskCreate):
         if db:
             db.close()
 
+def update_task_full(task_id: int, task_data: TaskUpdate):
+    """Actualizar una tarea completa (título, descripción, estado)"""
+    db = None
+    try:
+        # Validar que el task_id sea válido
+        if task_id <= 0:
+            raise ValueError("ID de tarea inválido")
+            
+        db = SessionLocal()
+        task = db.query(Task).filter(Task.id == task_id).first()
+        
+        if not task:
+            logger.warning(f"Tarea {task_id} no encontrada para actualizar")
+            raise ValueError("Tarea no encontrada")
+        
+        # Actualizar solo los campos que se proporcionaron
+        if task_data.title is not None:
+            task.title = task_data.title.strip()
+        if task_data.description is not None:
+            task.description = task_data.description.strip() if task_data.description else None
+        if task_data.state is not None:
+            task.state = task_data.state
+            
+        task.update_at = datetime.now()
+        db.commit()
+        db.refresh(task)
+        
+        # Cargar explícitamente la relación users antes de cerrar la sesión
+        task_with_users = db.query(Task).options(joinedload(Task.users)).filter(Task.id == task_id).first()
+        
+        logger.info(f"Tarea {task_id} actualizada exitosamente")
+        return task_with_users
+        
+    except ValueError:
+        if db:
+            db.rollback()
+        raise
+    except SQLAlchemyError as e:
+        if db:
+            db.rollback()
+        logger.error(f"Error de base de datos al actualizar tarea: {str(e)}")
+        raise SQLAlchemyError("Error al acceder a la base de datos")
+    except Exception as e:
+        if db:
+            db.rollback()
+        logger.error(f"Error inesperado al actualizar tarea: {str(e)}")
+        raise Exception("Error interno al actualizar la tarea")
+    finally:
+        if db:
+            db.close()
+
 def update_task_state(task_id: int, state_data: TaskUpdateState):
     """Actualizar el estado de una tarea"""
     db = None
@@ -103,8 +191,11 @@ def update_task_state(task_id: int, state_data: TaskUpdateState):
         db.commit()
         db.refresh(task)
         
+        # Cargar explícitamente la relación users antes de cerrar la sesión
+        task_with_users = db.query(Task).options(joinedload(Task.users)).filter(Task.id == task_id).first()
+        
         logger.info(f"Estado de tarea {task_id} actualizado a: {state_data.state}")
-        return task
+        return task_with_users
         
     except ValueError:
         if db:
